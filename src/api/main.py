@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
@@ -9,6 +9,8 @@ from typing import List, Optional
 from datetime import datetime
 import logging
 import json
+import os
+from pathlib import Path
 
 # Set up logging
 logging.basicConfig(
@@ -71,6 +73,18 @@ class FeedbackHistory(BaseModel):
     comment: str = None
     timestamp: datetime
     answer_text: str = None
+
+class TrainingRequest(BaseModel):
+    force_retrain: bool = False
+    min_feedback_score: int = 4
+    min_confidence: float = 0.7
+
+class TrainingStatus(BaseModel):
+    status: str
+    last_training_date: Optional[datetime] = None
+    training_samples: int = 0
+    satisfaction_rate: float = 0.0
+    is_training: bool = False
 
 @app.get("/")
 async def root():
@@ -189,6 +203,105 @@ async def submit_feedback(feedback: FeedbackRequest, db: Session = Depends(get_d
     except Exception as e:
         logger.error(f"Error in submit_feedback: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/training/status", response_model=TrainingStatus)
+async def get_training_status(db: Session = Depends(get_db)):
+    """Get current training status and model performance metrics."""
+    try:
+        db_ops = DatabaseOperations(db)
+        
+        # Get feedback statistics
+        feedback_stats = db_ops.get_feedback_stats()
+        
+        total_feedback = sum(count for _, count in feedback_stats)
+        positive_feedback = sum(count for score, count in feedback_stats if score >= 4)
+        satisfaction_rate = positive_feedback / total_feedback if total_feedback > 0 else 0.0
+        
+        # Check for latest training metadata
+        models_dir = Path("models")
+        latest_training = None
+        training_samples = 0
+        
+        if models_dir.exists():
+            training_dirs = [d for d in models_dir.iterdir() if d.is_dir() and d.name.startswith("fine_tuned_")]
+            if training_dirs:
+                latest_dir = max(training_dirs, key=lambda x: x.stat().st_mtime)
+                metadata_file = latest_dir / "training_metadata.json"
+                if metadata_file.exists():
+                    with open(metadata_file, 'r') as f:
+                        metadata = json.load(f)
+                        latest_training = datetime.fromisoformat(metadata["training_date"])
+                        training_samples = metadata["training_samples"]
+        
+        return TrainingStatus(
+            status="ready",
+            last_training_date=latest_training,
+            training_samples=training_samples,
+            satisfaction_rate=satisfaction_rate,
+            is_training=False
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in get_training_status: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/training/start")
+async def start_training(
+    training_request: TrainingRequest, 
+    background_tasks: BackgroundTasks, 
+    db: Session = Depends(get_db)
+):
+    """Start model training in the background."""
+    try:
+        logger.info("Training request received")
+        
+        # Check if we have enough feedback data
+        db_ops = DatabaseOperations(db)
+        training_data = db_ops.get_training_data(
+            min_feedback_score=training_request.min_feedback_score,
+            min_confidence=training_request.min_confidence
+        )
+        
+        if len(training_data) < 3 and not training_request.force_retrain:
+            logger.warning(f"Insufficient training data: {len(training_data)} samples")
+            return {
+                "status": "insufficient_data",
+                "message": f"Need at least 3 high-quality feedback samples to train. Currently have {len(training_data)}.",
+                "suggestion": "Collect more user feedback or use force_retrain=true to train with synthetic data."
+            }
+        
+        # Start training in background
+        background_tasks.add_task(run_training_task, training_request.dict())
+        
+        logger.info("Training started in background")
+        return {
+            "status": "training_started",
+            "message": "Model training has been started in the background.",
+            "training_samples": len(training_data)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in start_training: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def run_training_task(training_params: dict):
+    """Background task to run model training."""
+    try:
+        logger.info("Background training task started")
+        
+        # Import here to avoid circular imports
+        from src.models.training import run_training_pipeline
+        
+        # Run the training pipeline
+        success = run_training_pipeline()
+        
+        if success:
+            logger.info("Background training completed successfully")
+        else:
+            logger.error("Background training failed")
+            
+    except Exception as e:
+        logger.error(f"Background training error: {str(e)}")
 
 @app.get("/health")
 async def health_check():
