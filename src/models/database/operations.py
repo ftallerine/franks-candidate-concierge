@@ -1,5 +1,6 @@
 """Database operations for the Candidate Concierge."""
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from .models import Question, Answer, Feedback
 from datetime import datetime
 
@@ -40,9 +41,10 @@ class DatabaseOperations:
     def get_training_data(self, min_feedback_score: int = 4, 
                          min_confidence: float = 0.7):
         """Get high-quality QA pairs for model training."""
+        # Get Q&A pairs that have feedback with high scores
         return self.db.query(Question, Answer, Feedback)\
-            .join(Answer)\
-            .join(Feedback)\
+            .join(Answer, Question.id == Answer.question_id)\
+            .join(Feedback, Answer.id == Feedback.answer_id)\
             .filter(Feedback.score >= min_feedback_score)\
             .filter(Answer.confidence >= min_confidence)\
             .all()
@@ -52,4 +54,12 @@ class DatabaseOperations:
         return self.db.query(
             Feedback.score,
             func.count(Feedback.id).label('count')
-        ).group_by(Feedback.score).all() 
+        ).group_by(Feedback.score).all()
+    
+    def get_high_confidence_qa_pairs(self, min_confidence: float = 0.8, limit: int = 50):
+        """Get high-confidence Q&A pairs even without feedback for training."""
+        return self.db.query(Question, Answer)\
+            .join(Answer, Question.id == Answer.question_id)\
+            .filter(Answer.confidence >= min_confidence)\
+            .limit(limit)\
+            .all() 
