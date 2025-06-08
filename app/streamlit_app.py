@@ -25,14 +25,23 @@ def debug_print(message, message_type="info"):
         else:
             st.write(f"🐛 DEBUG: {message}")
 
-# Set up logging for Streamlit
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
+# Set up logging for Streamlit (Cloud-compatible)
+import os
+try:
+    # Try to create logs directory and file handler for local development
+    os.makedirs('logs', exist_ok=True)
+    handlers = [
         logging.FileHandler('logs/streamlit.log'),
         logging.StreamHandler()
     ]
+except (OSError, PermissionError):
+    # Fallback to console only for Streamlit Cloud deployment
+    handlers = [logging.StreamHandler()]
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=handlers
 )
 logger = logging.getLogger(__name__)
 
