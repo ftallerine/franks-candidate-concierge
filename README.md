@@ -1,10 +1,26 @@
 # Frank's Candidate Concierge 🤵‍♂️
 
-An AI-powered resume assistant with a complete feedback system that uses natural language processing to answer questions about Frank's professional experience, skills, and qualifications. The application features a user-friendly Streamlit interface, robust FastAPI backend, PostgreSQL database, and comprehensive logging system.
+An AI-powered resume assistant with enhanced structured data processing and comprehensive feedback system. Uses advanced natural language processing to answer questions about Frank's professional experience, skills, and qualifications with high precision. Features a hybrid approach combining structured data matching with DistilBERT fallback for optimal accuracy.
 
 ## 🌟 Key Features
 
-- **🤖 AI-Powered Q&A**: Natural language questions answered using DistilBERT (MiniLM)
+### **🧠 Enhanced AI Intelligence**
+- **🎯 Structured Data Matching**: High-confidence (1.0) answers for 60+ pre-defined question patterns
+- **🤖 AI Fallback System**: DistilBERT (MiniLM) for complex and nuanced queries
+- **📅 Temporal Awareness**: Handles certification dates, experience timelines, and graduation years
+- **🏷️ Contextual Skills**: Detailed skill descriptions with specific use cases and experience levels
+- **🔄 Adaptive Training**: Self-improving through feedback integration
+
+### **💡 Advanced Question Handling**
+- **👤 Contact Information**: Email, LinkedIn, location queries
+- **💼 Career Tracking**: Current role, job search criteria, desired positions
+- **🏆 Certifications**: Names, issuers, dates, and validity status
+- **⏰ Experience Timeline**: Years of experience with specific technologies
+- **🛠️ Technical Skills**: Categorized by cloud/Azure, tools, programming languages
+- **📈 Achievements**: Tagged metrics with contextual filtering
+- **🎓 Education**: Degrees, honors, graduation year, and coursework
+
+### **🔧 System Architecture**
 - **💾 Persistent Storage**: PostgreSQL database storing all questions, answers, and feedback
 - **👍 Feedback System**: Thumbs up/down rating system with optional comments
 - **📊 Real-time Analytics**: Live confidence scores and interaction history
@@ -45,34 +61,44 @@ erDiagram
     ANSWERS ||--o{ FEEDBACK : "answer_id"
 ```
 
-## 🔄 Data Processing Flow
+## 🔄 Enhanced AI Processing Flow
 
 ```mermaid
 flowchart TD
     A[User asks question] --> B[Streamlit UI]
     B --> C[POST /ask API call]
     C --> D[Store question in PostgreSQL]
-    D --> E[DistilBERT Model Processing]
-    E --> F[Generate answer + confidence]
-    F --> G[Store answer in PostgreSQL]
-    G --> H[Return answer to UI]
-    H --> I[Display answer with confidence]
-    I --> J[User provides feedback]
-    J --> K[POST /feedback API call]
-    K --> L[Store feedback in PostgreSQL]
-    L --> M[Update UI with success message]
+    D --> E{Structured Data Check}
+    E -->|Match Found| F[High-Confidence Answer<br/>1.0 confidence]
+    E -->|No Match| G[DistilBERT Processing]
+    G --> H[ML-Generated Answer<br/>Variable confidence]
+    F --> I[Store answer in PostgreSQL]
+    H --> I
+    I --> J[Return answer to UI]
+    J --> K[Display answer with confidence]
+    K --> L[User provides feedback]
+    L --> M[POST /feedback API call]
+    M --> N[Store feedback in PostgreSQL]
+    N --> O[Update UI with success message]
     
-    N[Background Logging] --> O[API logs]
-    N --> P[Streamlit logs]
-    N --> Q[Database logs]
+    P[Background Logging] --> Q[API logs]
+    P --> R[Streamlit logs]
+    P --> S[Database logs]
     
-    C --> N
-    K --> N
+    T[Training Pipeline] --> U[Collect High-Quality Feedback]
+    U --> V[Generate Synthetic Data]
+    V --> W[Fine-tune Model]
+    
+    C --> P
+    M --> P
+    N --> T
     
     style A fill:#e1f5fe
-    style I fill:#c8e6c9
-    style M fill:#ffecb3
-    style E fill:#f3e5f5
+    style E fill:#fff3e0
+    style F fill:#e8f5e8
+    style G fill:#f3e5f5
+    style K fill:#c8e6c9
+    style O fill:#ffecb3
 ```
 
 ## 📁 Project Structure
@@ -86,7 +112,9 @@ FranksCandidateConcierge/
 │   ├── api/                      # FastAPI application
 │   │   └── main.py              # API endpoints + logging
 │   └── models/                   # ML and database models
-│       ├── qa_model.py          # DistilBERT question-answering
+│       ├── qa_model.py          # Hybrid Q&A system (structured + DistilBERT)
+│       ├── resume_data.py       # Enhanced structured resume data
+│       ├── training.py          # Model training & fine-tuning pipeline
 │       └── database/            # Database components
 │           ├── models.py        # SQLAlchemy table definitions
 │           ├── session.py       # Database connection management
@@ -161,6 +189,14 @@ localhost:5432:concierge_db:postgres:your_password
 ```
 
 ### **4. Launch Application**
+
+**Option 1: Quick Start (Windows)**
+```bash
+# Double-click the included batch file
+start_services.bat
+```
+
+**Option 2: Manual Start**
 ```bash
 # Terminal 1: Start FastAPI backend
 uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
@@ -168,6 +204,42 @@ uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 # Terminal 2: Start Streamlit frontend
 streamlit run app/streamlit_app.py
 ```
+
+## 🎯 Enhanced AI Capabilities
+
+### **Structured Data Question Types (High Confidence - 1.0)**
+
+**Contact & Location**
+- "What is Frank's email?" → REDACTED_EMAIL@example.com 
+- "How can I contact Frank?" → Email and LinkedIn
+- "Where is Frank located?" → Montgomery, TX
+
+**Certifications with Timeline**
+- "What certifications does Frank have?" → Lists all with issuers
+- "When did Frank get his Scrum Master certification?" → 2019
+- "Are Frank's Azure certifications current?" → Yes, 2020-2021
+
+**Experience Timeline**
+- "How many years of Azure experience does Frank have?" → 3+ years (2021-Present)
+- "How long has Frank been using SQL?" → 3+ years with context
+- "What is Frank's Business Analysis experience?" → 6+ years (Sep 2018-Present)
+
+**Skills with Context**
+- "What does Frank use SQL for?" → Database design, reporting, and data analysis
+- "How does Frank use Office 365?" → Excel for analysis, Teams for collaboration
+- "What is Mermaid.js used for?" → Process diagramming and flowchart creation
+
+**Career & Job Search**
+- "What is Frank's current role?" → Technical Business Analyst at The Marker Group
+- "What kind of job is Frank looking for?" → Technical BA, Senior BA, BSA roles
+- "What are Frank's salary expectations?" → $90,000-$115,000 annually
+
+**Achievements with Filtering**
+- "What are Frank's Agile achievements?" → Filtered to Agile-tagged accomplishments
+- "Show me Frank's Azure results?" → Azure DevOps specific achievements
+
+### **Fallback AI Processing (Variable Confidence)**
+For complex, nuanced, or unstructured questions, the system falls back to DistilBERT processing with the full resume text as context.
 
 ## 📖 Usage Guide
 
@@ -198,6 +270,14 @@ The API is available at `http://localhost:8000`:
   ```
 - **GET** `/history` - Get Q&A interaction history
 - **GET** `/health` - System health status
+- **POST** `/training/start` - Start model training pipeline
+  ```json
+  {
+    "force_retrain": false,
+    "min_feedback_score": 4,
+    "min_confidence": 0.7
+  }
+  ```
 
 ### **Database Management**
 1. **pgAdmin Access**: Connect to `localhost:5432`
@@ -213,9 +293,38 @@ The API is available at `http://localhost:8000`:
 
 ### **Key Metrics**
 - **Questions Asked**: Tracked with unique IDs
-- **Answer Confidence**: 0-100% accuracy scores
+- **Answer Confidence**: 0-100% accuracy scores (structured data = 1.0)
 - **User Satisfaction**: Thumbs up/down feedback ratios
 - **System Performance**: Response times and error rates
+- **Training Data**: 60+ synthetic Q&A pairs + user feedback
+- **Structured Coverage**: Contact, certifications, skills, experience, achievements
+
+## 🏗️ Enhanced Data Structure
+
+### **Resume Data Enhancements**
+- **📞 Contact Information**: Email, LinkedIn, location (phone removed for privacy)
+- **🏆 Structured Certifications**: Name, issuer, year obtained, status
+- **⚡ Skills with Context**: Detailed descriptions and specific use cases
+- **📊 Tagged Achievements**: Filterable by technology, skill area, or impact type
+- **🗓️ Experience Timeline**: Specific date ranges for technology experience
+- **🔍 Search Keywords**: Optimized for query matching and retrieval
+- **🎯 Job Search Criteria**: Desired roles, location preferences, salary range
+
+### **Skill Categories**
+- **cloud_and_net**: Azure (3+ years), Azure DevOps (3+ years), PowerShell, .NET
+- **tools**: SQL (3+ years), Power BI, Git, Visual Studio, Python, Office 365 (5+ years), Mermaid.js
+- **agile_and_scrum**: Methodologies, sprint planning, retrospectives, user stories
+- **business_analysis**: Requirements gathering, stakeholder management, process optimization
+- **programming_languages**: Python, C++, JavaScript, HTML, CSS, PowerShell
+
+### **Training Pipeline**
+```bash
+# Start training pipeline with collected feedback
+python run_training.py
+
+# Train with synthetic data only (for testing)
+python run_training.py --force-retrain
+```
 
 ## 🔧 Development
 
