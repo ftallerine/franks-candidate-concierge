@@ -1,0 +1,117 @@
+/* ==============================================
+   Frank's Candidate Concierge - Professional Styling
+   ============================================== */
+
+/* === CIRCULAR PROFILE IMAGE === */
+div.stImage > img {
+    width: 200px !important;
+    height: 200px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    object-position: center top !important;
+    border: 6px solid #ffffff !important;
+    box-shadow: 
+        0 8px 24px rgba(0,0,0,0.15), 
+        0 0 0 1px rgba(0,0,0,0.1) !important;
+    margin: 20px auto !important;
+    display: block !important;
+}
+
+/* === IMAGE CONTAINER CENTERING === */
+.stImage {
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin: 20px 0 !important;
+}
+
+/* === LAYOUT AND SPACING === */
+.main .block-container {
+    padding-top: 2rem !important;
+    max-width: 1200px !important;
+}
+
+/* === SIDEBAR STYLING === */
+.sidebar .sidebar-content {
+    padding-top: 1rem !important;
+}
+
+/* === BUTTON STYLING === */
+.stButton > button {
+    border-radius: 8px !important;
+    border: 1px solid #e0e0e0 !important;
+    transition: all 0.2s ease !important;
+}
+
+.stButton > button:hover {
+    border-color: #2e6da4 !important;
+    box-shadow: 0 2px 8px rgba(46, 109, 164, 0.1) !important;
+}
+
+/* === SUCCESS/ERROR MESSAGE STYLING === */
+.stSuccess {
+    border-radius: 8px !important;
+    border-left: 4px solid #28a745 !important;
+}
+
+.stError {
+    border-radius: 8px !important;
+    border-left: 4px solid #dc3545 !important;
+}
+
+.stInfo {
+    border-radius: 8px !important;
+    border-left: 4px solid #17a2b8 !important;
+}
+
+/* === INPUT FIELD STYLING === */
+.stTextInput > div > div > input {
+    border-radius: 8px !important;
+    border: 2px solid #e0e0e0 !important;
+    padding: 12px !important;
+    font-size: 16px !important;
+}
+
+.stTextInput > div > div > input:focus {
+    border-color: #2e6da4 !important;
+    box-shadow: 0 0 0 3px rgba(46, 109, 164, 0.1) !important;
+}
+
+/* === PROFESSIONAL COLOR SCHEME === */
+:root {
+    --primary-color: #2e6da4;
+    --secondary-color: #f8f9fa;
+    --accent-color: #28a745;
+    --text-dark: #333333;
+    --text-light: #666666;
+}
+
+/* === TITLE STYLING === */
+h1 {
+    color: var(--text-dark) !important;
+    font-weight: 600 !important;
+    margin-bottom: 1rem !important;
+}
+
+/* === CLEAN BACKGROUND === */
+.stApp {
+    background-color: #ffffff !important;
+}
+
+/* === REMOVE STREAMLIT BRANDING === */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+
+/* === RESPONSIVE DESIGN === */
+@media (max-width: 768px) {
+    div.stImage > img {
+        width: 150px !important;
+        height: 150px !important;
+        border-width: 4px !important;
+    }
+    
+    .main .block-container {
+        padding: 1rem !important;
+    }
+} 

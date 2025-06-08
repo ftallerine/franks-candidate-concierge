@@ -7,11 +7,11 @@ def setup_image():
     image_dir.mkdir(parents=True, exist_ok=True)
     
     # Path to the headshot
-    headshot_path = image_dir / "frank_headshot.jpg"
+    headshot_path = image_dir / "headshot.png"
     
     if not headshot_path.exists():
         print(f"Please place your headshot image at: {headshot_path}")
-        print("The image should be named 'frank_headshot.jpg'")
+        print("The image should be named 'headshot.png'")
 
 if __name__ == "__main__":
     setup_image() 

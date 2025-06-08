@@ -136,35 +136,133 @@ class ModelTrainer:
         """Create synthetic training data from structured resume data."""
         synthetic_pairs = []
         
-        # Generate Q&A pairs from structured data
-        qa_templates = [
-            ("What is Frank's current role?", RESUME_DATA["current_role"]),
-            ("What certifications does Frank have?", ", ".join(RESUME_DATA["certifications"])),
+        # Contact Information Q&A
+        contact_qa = [
+            ("What is Frank's email address?", RESUME_DATA["contact_information"]["email"]),
+            ("How can I contact Frank?", f"Email: {RESUME_DATA['contact_information']['email']}, LinkedIn: {RESUME_DATA['contact_information']['linkedin']}"),
+            ("What is Frank's LinkedIn profile?", RESUME_DATA["contact_information"]["linkedin"]),
             ("Where is Frank located?", RESUME_DATA["contact_information"]["location"]),
-            ("What is Frank's email?", RESUME_DATA["contact_information"]["email"]),
+            ("Where does Frank live?", RESUME_DATA["contact_information"]["location"]),
         ]
         
-        # Add experience-based questions
+        # Current Role & Job Search Q&A
+        current_job = RESUME_DATA["professional_experience"][0]
+        current_role_text = f"{current_job['title']} at {current_job['company']} ({current_job['dates']})"
+        role_qa = [
+            ("What is Frank's current role?", current_role_text),
+            ("What is Frank's current position?", current_role_text),
+            ("Where does Frank work now?", "Frank works at The Marker Group in Montgomery, TX (Houston metropolitan area)"),
+            ("What kind of job is Frank looking for?", RESUME_DATA["job_search_criteria"]["desired_role"]),
+            ("What roles is Frank seeking?", RESUME_DATA["job_search_criteria"]["desired_role"]),
+            ("What is Frank's target role?", RESUME_DATA["job_search_criteria"]["desired_role"]),
+        ]
+        
+        # Experience & Years Q&A
+        experience_qa = [
+            ("How many years of business analysis experience does Frank have?", RESUME_DATA["experience_highlights"]["total_ba_experience"]),
+            ("How long has Frank been a Business Analyst?", RESUME_DATA["experience_highlights"]["total_ba_experience"]),
+            ("How much Scrum Master experience does Frank have?", RESUME_DATA["experience_highlights"]["scrum_master_experience"]),
+            ("How many years of Azure experience does Frank have?", RESUME_DATA["experience_highlights"]["azure_experience"]),
+            ("How long has Frank been working with SQL?", RESUME_DATA["experience_highlights"]["sql_experience"]),
+            ("What is Frank's experience level?", f"Total Business Analysis experience: {RESUME_DATA['experience_highlights']['total_ba_experience']}, Scrum Master: {RESUME_DATA['experience_highlights']['scrum_master_experience']}, Azure: {RESUME_DATA['experience_highlights']['azure_experience']}, SQL: {RESUME_DATA['experience_highlights']['sql_experience']}"),
+        ]
+        
+        # Certifications Q&A
+        cert_list = [f"{cert['name']} ({cert['issuer']})" for cert in RESUME_DATA["certifications"]]
+        cert_with_years = [f"{cert['name']} ({cert['issuer']}, {cert['year_obtained']})" for cert in RESUME_DATA["certifications"]]
+        cert_qa = [
+            ("What certifications does Frank have?", ", ".join(cert_list)),
+            ("Is Frank certified?", ", ".join(cert_list)),
+            ("What are Frank's professional certifications?", ", ".join(cert_list)),
+            ("When did Frank get his certifications?", ", ".join(cert_with_years)),
+            ("Does Frank have any Azure certifications?", "Microsoft Certified: Azure Administrator Associate (Microsoft, 2021), Microsoft Certified: Azure Fundamentals (Microsoft, 2020)"),
+            ("Is Frank a Certified Scrum Master?", "Yes, Certified Scrum Master (CSM) from Scrum Alliance, obtained in 2019"),
+        ]
+        
+        # Skills Q&A
+        skills_qa = [
+            ("What are Frank's technical skills?", ", ".join(RESUME_DATA["skills_and_technologies"]["cloud_and_net"] + RESUME_DATA["skills_and_technologies"]["tools"])),
+            ("What tools does Frank use?", ", ".join(RESUME_DATA["skills_and_technologies"]["tools"])),
+            ("What cloud technologies does Frank know?", ", ".join(RESUME_DATA["skills_and_technologies"]["cloud_and_net"])),
+            ("What are Frank's business analysis skills?", ", ".join(RESUME_DATA["skills_and_technologies"]["business_analysis"])),
+            ("What are Frank's Agile and Scrum skills?", ", ".join(RESUME_DATA["skills_and_technologies"]["agile_and_scrum"])),
+            ("What soft skills does Frank have?", ", ".join(RESUME_DATA["skills_and_technologies"]["soft_skills"])),
+            ("What programming languages does Frank know?", ", ".join(RESUME_DATA["skills_and_technologies"]["programming_languages"])),
+            ("Does Frank know Python?", "Yes, Frank is proficient in Python for data processing, ML pipelines, and automation scripts"),
+            ("What is Frank's experience with Azure?", "3+ years of Azure experience including Azure DevOps, Azure Portal, and Azure administration"),
+            ("Does Frank know SQL?", "Yes, Frank has 3+ years of SQL experience for database design, reporting, and data analysis"),
+            ("How long has Frank been using Office 365?", "Frank has 5+ years of experience with Office 365"),
+            ("Does Frank know Mermaid.js?", "Yes, Frank is proficient with Mermaid.js for creating diagrams and visualizations"),
+        ]
+        
+        # Education Q&A
+        education_qa = [
+            ("What is Frank's educational background?", f"{RESUME_DATA['education']['degrees'][0]} and {RESUME_DATA['education']['degrees'][1]} from {RESUME_DATA['education']['university']}, graduated {RESUME_DATA['education']['honors']} in {RESUME_DATA['education']['graduation_year']}"),
+            ("Where did Frank go to university?", RESUME_DATA["education"]["university"]),
+            ("What degrees does Frank have?", f"{RESUME_DATA['education']['degrees'][0]} and {RESUME_DATA['education']['degrees'][1]}"),
+            ("Did Frank graduate with honors?", f"Yes, Frank graduated {RESUME_DATA['education']['honors']}"),
+            ("When did Frank graduate?", f"Frank graduated in {RESUME_DATA['education']['graduation_year']}"),
+            ("What year did Frank graduate from college?", RESUME_DATA["education"]["graduation_year"]),
+        ]
+        
+        # Achievements Q&A
+        achievements_list = [item["achievement"] for item in RESUME_DATA["key_achievements_summary"]]
+        achievements_qa = [
+            ("What are Frank's key achievements?", ". ".join(achievements_list)),
+            ("What results has Frank delivered?", ". ".join(achievements_list)),
+            ("What impact has Frank made?", ". ".join(achievements_list)),
+            ("What metrics can Frank share?", ". ".join(achievements_list)),
+        ]
+        
+        # Company-specific Q&A
         for job in RESUME_DATA["professional_experience"]:
-            qa_templates.extend([
+            company_qa = [
                 (f"What was Frank's role at {job['company']}?", job["title"]),
                 (f"When did Frank work at {job['company']}?", job["duration"]),
-            ])
+                (f"What did Frank do at {job['company']}?", ". ".join(job["responsibilities"])),
+                (f"What were Frank's achievements at {job['company']}?", ". ".join(job["achievements"])),
+            ]
+            synthetic_pairs.extend([{
+                'question': q,
+                'answer': a,
+                'feedback_score': 5,
+                'confidence': 1.0
+            } for q, a in company_qa])
         
-        # Add skills questions
-        all_skills = []
-        for category in RESUME_DATA["skills_and_technologies"].values():
-            all_skills.extend(category)
+        # Projects Q&A
+        project_qa = [
+            ("What projects has Frank worked on?", f"{RESUME_DATA['projects'][0]['name']}: {' '.join(RESUME_DATA['projects'][0]['description'])}"),
+            ("Tell me about Frank's AI project", f"{RESUME_DATA['projects'][0]['name']}: {' '.join(RESUME_DATA['projects'][0]['description'])} {' '.join(RESUME_DATA['projects'][0]['achievements'])}"),
+            ("Has Frank worked with machine learning?", f"Yes, Frank built the {RESUME_DATA['projects'][0]['name']}: {' '.join(RESUME_DATA['projects'][0]['description'])}"),
+        ]
         
-        qa_templates.append(("What are Frank's technical skills?", ", ".join(all_skills)))
+        # Salary Q&A
+        salary_qa = [
+            ("What are Frank's salary expectations?", f"Target salary: {RESUME_DATA['salary_expectations']['target']}, {RESUME_DATA['salary_expectations']['negotiable']}. {RESUME_DATA['salary_expectations']['additional_notes']}"),
+            ("What is Frank's target salary?", RESUME_DATA["salary_expectations"]["target"]),
+            ("Is Frank's salary negotiable?", f"Yes, {RESUME_DATA['salary_expectations']['negotiable']}. {RESUME_DATA['salary_expectations']['additional_notes']}"),
+        ]
         
-        for question, answer in qa_templates:
-            synthetic_pairs.append({
-                'question': question,
-                'answer': answer,
+        # Language Q&A
+        language_qa = [
+            ("What languages does Frank speak?", ", ".join(RESUME_DATA["languages"])),
+            ("Is Frank bilingual?", f"Yes, Frank speaks {', '.join(RESUME_DATA['languages'])}"),
+            ("What programming languages does Frank know?", ", ".join(RESUME_DATA["skills_and_technologies"]["programming_languages"])),
+        ]
+        
+        # Combine all Q&A pairs
+        all_qa_sets = [
+            contact_qa, role_qa, experience_qa, cert_qa, skills_qa,
+            education_qa, achievements_qa, project_qa, salary_qa, language_qa
+        ]
+        
+        for qa_set in all_qa_sets:
+            synthetic_pairs.extend([{
+                'question': q,
+                'answer': a,
                 'feedback_score': 5,  # Synthetic data gets highest score
                 'confidence': 1.0
-            })
+            } for q, a in qa_set])
         
         logger.info(f"Generated {len(synthetic_pairs)} synthetic training pairs")
         return synthetic_pairs
