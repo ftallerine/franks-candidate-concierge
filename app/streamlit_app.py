@@ -198,13 +198,34 @@ else:
             image_path = potential_path
             break
 
-# Simplified header layout - title with emoji icon
+# Responsive header layout
 st.markdown("""
-<div style="display: flex; align-items: center; justify-content: space-between; height: 80px; margin-bottom: 1rem;">
-    <h1 style="margin: 0; font-size: 3rem; line-height: 1;">Frank's Candidate Concierge</h1>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+@media (max-width: 768px) {
+    .header-container {
+        flex-direction: column !important;
+        align-items: center !important;
+        height: auto !important;
+        gap: 15px !important;
+    }
+    .header-title {
+        font-size: 2rem !important;
+        text-align: center !important;
+    }
+    .linkedin-button-text {
+        display: none !important;
+    }
+    .linkedin-button {
+        padding: 6px !important;
+    }
+}
+</style>
+<div class="header-container" style="display: flex; align-items: center; justify-content: space-between; height: 80px; margin-bottom: 1rem;">
+    <h1 class="header-title" style="margin: 0; font-size: 3rem; line-height: 1;">Frank's Candidate Concierge</h1>
     <div style="display: flex; align-items: center;">
         <a href="https://www.linkedin.com/in/frank-tallerine/" target="_blank" style="text-decoration: none; margin-left: 20px;">
-            <div style="
+            <div class="linkedin-button" style="
                 background: linear-gradient(135deg, #FFD700, #FFA500, #FF8C00);
                 border-radius: 6px;
                 padding: 8px;
@@ -218,7 +239,7 @@ st.markdown("""
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="white" style="margin-right: 8px;">
                     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                 </svg>
-                <span style="color: white; font-weight: 600; font-size: 14px;">Connect on LinkedIn</span>
+                <span class="linkedin-button-text" style="color: white; font-weight: 600; font-size: 14px;">Connect on LinkedIn</span>
             </div>
         </a>
     </div>
