@@ -280,7 +280,9 @@ if question:
                 answer, confidence = get_simple_answer(question)
             
             if answer and confidence >= 0.5:
-                st.success(f"**Answer:** {answer}")
+                # Format the answer properly for display
+                formatted_answer = answer.replace('\n', '  \n')  # Double space + newline for markdown line breaks
+                st.markdown(f"✅ **Answer:**  \n{formatted_answer}")
                 
                 # Show confidence and source for debugging
                 if DEBUG_MODE:
