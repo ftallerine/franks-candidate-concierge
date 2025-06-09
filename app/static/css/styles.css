@@ -114,4 +114,40 @@ header {visibility: hidden;}
     .main .block-container {
         padding: 1rem !important;
     }
+    
+    /* Mobile header adjustments */
+    .header-container {
+        flex-direction: column !important;
+        align-items: center !important;
+        height: auto !important;
+        gap: 15px !important;
+        padding: 10px !important;
+    }
+    
+    .header-title {
+        font-size: 2rem !important;
+        text-align: center !important;
+    }
+    
+    .linkedin-button-text {
+        display: none !important;
+    }
+    
+    .linkedin-button {
+        padding: 6px !important;
+        margin-left: 0 !important;
+    }
+    
+    /* Improve mobile text input */
+    .stTextInput > div > div > input {
+        font-size: 16px !important;
+        padding: 10px !important;
+    }
+    
+    /* Better mobile buttons */
+    .stButton > button {
+        font-size: 14px !important;
+        padding: 0.5rem 1rem !important;
+        margin: 2px 0 !important;
+    }
 } 
