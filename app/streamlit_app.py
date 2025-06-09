@@ -202,6 +202,17 @@ else:
 st.markdown("""
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+/* Mobile-first approach - force light theme everywhere */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Base styling to prevent dark mode issues */
+.stApp {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+}
+/* Force light theme and fix mobile issues */
 @media (max-width: 768px) {
     .header-container {
         flex-direction: column !important;
@@ -212,12 +223,33 @@ st.markdown("""
     .header-title {
         font-size: 2rem !important;
         text-align: center !important;
+        color: #333333 !important;
     }
     .linkedin-button-text {
         display: none !important;
     }
     .linkedin-button {
         padding: 6px !important;
+    }
+    
+    /* Override any dark mode styling */
+    .stApp, .stApp > div, .main, .block-container {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+    }
+    
+    /* Force input field styling */
+    input[type="text"], .stTextInput input {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+        border: 2px solid #e0e0e0 !important;
+        -webkit-appearance: none !important;
+        appearance: none !important;
+    }
+    
+    /* Ensure all text is readable */
+    p, div, span, h1, h2, h3 {
+        color: #333333 !important;
     }
 }
 </style>

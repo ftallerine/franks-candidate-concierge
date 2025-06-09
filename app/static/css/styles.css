@@ -113,6 +113,7 @@ header {visibility: hidden;}
     
     .main .block-container {
         padding: 1rem !important;
+        max-width: 100% !important;
     }
     
     /* Mobile header adjustments */
@@ -127,6 +128,7 @@ header {visibility: hidden;}
     .header-title {
         font-size: 2rem !important;
         text-align: center !important;
+        color: #333333 !important;
     }
     
     .linkedin-button-text {
@@ -138,10 +140,23 @@ header {visibility: hidden;}
         margin-left: 0 !important;
     }
     
-    /* Improve mobile text input */
+    /* Force light theme on mobile inputs */
     .stTextInput > div > div > input {
         font-size: 16px !important;
-        padding: 10px !important;
+        padding: 12px !important;
+        background-color: #ffffff !important;
+        color: #333333 !important;
+        border: 2px solid #e0e0e0 !important;
+        border-radius: 8px !important;
+        -webkit-appearance: none !important;
+        appearance: none !important;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        background-color: #ffffff !important;
+        color: #333333 !important;
+        border-color: #2e6da4 !important;
+        outline: none !important;
     }
     
     /* Better mobile buttons */
@@ -149,5 +164,32 @@ header {visibility: hidden;}
         font-size: 14px !important;
         padding: 0.5rem 1rem !important;
         margin: 2px 0 !important;
+        background-color: #ffffff !important;
+        color: #333333 !important;
+        border: 1px solid #e0e0e0 !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #f8f9fa !important;
+        color: #333333 !important;
+    }
+    
+    /* Force light background for mobile */
+    .stApp {
+        background-color: #ffffff !important;
+    }
+    
+    /* Success messages mobile styling */
+    .stSuccess {
+        background-color: #d4edda !important;
+        color: #155724 !important;
+        border-color: #c3e6cb !important;
+    }
+    
+    /* Warning messages mobile styling */
+    .stWarning {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+        border-color: #ffeaa7 !important;
     }
 } 
