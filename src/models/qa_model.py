@@ -16,37 +16,37 @@ class QAModel:
             self.predefined_qa = [
                 {
                     "question": "What certifications does Frank have?",
-                    "answer": "- Certified Scrum Master (CSM), Scrum Alliance, 2019\n- Microsoft Certified: Azure Administrator Associate, 2021\n- Microsoft Certified: Azure Fundamentals, 2020\n- Status: All active",
+                    "answer": "• Certified Scrum Master (CSM), Scrum Alliance, 2019\n• Microsoft Certified: Azure Administrator Associate, 2021\n• Microsoft Certified: Azure Fundamentals, 2020\n• Status: All active",
                     "keywords": ["certifications", "certification", "certified"]
                 },
                 {
                     "question": "What are Frank's technical skills?",
-                    "answer": "- Cloud & DevOps: Azure (3+ years), Azure DevOps (3+ years), PowerShell\n- Data & Analytics: SQL (3+ years), Power BI, Microsoft Access\n- Development: Python, Git, Visual Studio, Mermaid.js\n- Productivity: Office 365 (5+ years)",
+                    "answer": "• Cloud & DevOps: Azure (3+ years), Azure DevOps (3+ years), PowerShell\n• Data & Analytics: SQL (3+ years), Power BI, Microsoft Access\n• Development: Python, Git, Visual Studio, Mermaid.js\n• Productivity: Office 365 (5+ years)",
                     "keywords": ["technical skills", "technologies"]
                 },
                 {
                     "question": "What programming languages does Frank know?",
-                    "answer": "- Languages: Python, JavaScript, HTML, CSS, PowerShell\n- Applications: Web development, data processing, automation",
+                    "answer": "• Languages: Python, JavaScript, HTML, CSS, PowerShell\n• Applications: Web development, data processing, automation",
                     "keywords": ["programming languages", "coding languages"]
                 },
                 {
                     "question": "What is Frank's current role?",
-                    "answer": "- Role: Technical Business Analyst, The Marker Group\n- Since: September 2018\n- Focus: Agile optimization, stakeholder analysis, Azure DevOps releases",
+                    "answer": "• Role: Technical Business Analyst, The Marker Group\n• Since: September 2018\n• Focus: Agile optimization, stakeholder analysis, Azure DevOps releases",
                     "keywords": ["current role", "current position", "current job"]
                 },
                 {
                     "question": "What is Frank's experience with Azure?",
-                    "answer": "Duration: 3+ years (since 2021)\nAchievements:\n- Azure DevOps releases: Reduced errors by 40%, increased frequency to 3-5/week\n- Managed compute, networking, security resources\n- Built Azure-integrated Power BI dashboards\nCertifications: Azure Administrator Associate (2021), Azure Fundamentals (2020)",
+                    "answer": "Duration: 3+ years (since 2021)\nAchievements:\n• Azure DevOps releases: Reduced errors by 40%, increased frequency to 3-5/week\n• Managed compute, networking, security resources\n• Built Azure-integrated Power BI dashboards\nCertifications: Azure Administrator Associate (2021), Azure Fundamentals (2020)",
                     "keywords": ["azure experience", "experience with azure"]
                 },
                 {
                     "question": "How many years of business analysis experience does Frank have?",
-                    "answer": "- Total: 6+ years\n- Breakdown:\n  - Technical Business Analyst, The Marker Group (since 2018)\n  - Lead Project Coordinator, John Moore Services (2017-2018)",
+                    "answer": "• Total: 6+ years\n• Breakdown:\n  • Technical Business Analyst, The Marker Group (since 2018)\n  • Lead Project Coordinator, John Moore Services (2017-2018)",
                     "keywords": ["business analysis experience", "years of experience as business analyst"]
                 },
                 {
                     "question": "What tools does Frank use for data visualization?",
-                    "answer": "- Tools:\n  - Power BI: 15+ interactive dashboards built\n  - Microsoft Access: Financial reporting from complex datasets\n  - Azure DevOps Dashboards: Project metrics visualization",
+                    "answer": "• Tools:\n  • Power BI: 15+ interactive dashboards built\n  • Microsoft Access: Financial reporting from complex datasets\n  • Azure DevOps Dashboards: Project metrics visualization",
                     "keywords": ["data visualization tools", "visualization tools"]
                 }
             ]
