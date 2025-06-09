@@ -1,19 +1,29 @@
 import streamlit as st
-import requests
-import json
-import time
+import sys
 import os
-import logging
 from pathlib import Path
+import time
+import logging
 from datetime import datetime
+
+# Add the project root to Python path so we can import from src
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+# Now import the QA model and resume data
+try:
+    from src.models.qa_model import QAModel
+    from src.models.resume_data import RESUME_DATA
+    MODEL_AVAILABLE = True
+except ImportError as e:
+    MODEL_AVAILABLE = False
+    print(f"Model import failed: {e}")
 
 # Debug Configuration - Secure toggle for debug UI
 # Set DEBUG_MODE = False for production, True for development
 DEBUG_MODE = os.getenv("STREAMLIT_DEBUG", "false").lower() == "true"
-
-# Feedback Configuration - Toggle for feedback system  
-# Set ENABLE_FEEDBACK = False for Streamlit-only deployment, True when backend is available
-ENABLE_FEEDBACK = os.getenv("STREAMLIT_ENABLE_FEEDBACK", "false").lower() == "true"
 
 def debug_print(message, message_type="info"):
     """Conditionally display debug messages based on DEBUG_MODE"""
@@ -26,7 +36,6 @@ def debug_print(message, message_type="info"):
             st.write(f"🐛 DEBUG: {message}")
 
 # Set up logging for Streamlit (Cloud-compatible)
-import os
 try:
     # Try to create logs directory and file handler for local development
     os.makedirs('logs', exist_ok=True)
@@ -48,11 +57,93 @@ logger = logging.getLogger(__name__)
 # Configure the page
 st.set_page_config(
     page_title="Frank's Candidate Concierge",
-    page_icon="app/static/images/concierge_icon.png",
+    page_icon="📋",
     layout="wide"
 )
 
 logger.info("Streamlit app started")
+
+# Use Streamlit caching for model loading
+@st.cache_resource(show_spinner=False)
+def load_qa_model():
+    """Load the QA model with caching to avoid reloading."""
+    try:
+        logger.info("Loading QA model with caching...")
+        model = QAModel()
+        logger.info("QA model loaded successfully")
+        return model, True
+    except Exception as e:
+        logger.error(f"Failed to load QA model: {str(e)}")
+        return None, False
+
+# Simple Q&A fallback using structured data only
+def get_simple_answer(question: str) -> tuple[str, float]:
+    """Get answer using only structured data, without ML model."""
+    if not MODEL_AVAILABLE:
+        return "Model not available. Please check the installation.", 0.0
+        
+    q_lower = question.lower()
+    
+    # Simple keyword-based matching for common questions
+    predefined_answers = {
+        "current role": "Technical Business Analyst at The Marker Group (September 2018-Present)",
+        "certifications": "Certified Scrum Master (CSM) - Scrum Alliance, 2019; Microsoft Certified: Azure Administrator Associate - Microsoft, 2021; Microsoft Certified: Azure Fundamentals - Microsoft, 2020",
+        "technical skills": "Azure (3+ years), Azure DevOps (3+ years), SQL (3+ years), Power BI, Python, Git, Visual Studio, Office 365 (5+ years), PowerShell",
+        "programming languages": "Python, C++, JavaScript, HTML, CSS, PowerShell",
+        "azure experience": "3+ years since 2021. Azure DevOps releases, reduced deployment errors by 40%, enabled 3-5 weekly deployments. Azure Administrator Associate certified.",
+        "education": "Bachelor of Mathematics and Bachelor of Finance from Texas State University, San Marcos, TX. Graduated Cum Laude in 2016.",
+        "experience": "6+ years as Technical Business Analyst. Led Agile process optimization, increased team velocity by 75%, conducted stakeholder analysis.",
+        "contact": "Email: REDACTED_EMAIL@example.com , LinkedIn: https://www.linkedin.com/in/frank-tallerine/, Location: Montgomery, TX"
+    }
+    
+    # Find matching answer
+    for key, answer in predefined_answers.items():
+        if key in q_lower:
+            return answer, 1.0
+    
+    # Try to extract from RESUME_DATA if available
+    try:
+        # Current role
+        if any(term in q_lower for term in ["current", "role", "position", "job"]):
+            current_job = RESUME_DATA["professional_experience"][0]
+            return f"{current_job['title']} at {current_job['company']} ({current_job['dates']})", 1.0
+            
+        # Certifications
+        if "cert" in q_lower:
+            certs = []
+            for cert in RESUME_DATA["certifications"]:
+                certs.append(f"{cert['name']} ({cert['issuer']}, {cert['year_obtained']})")
+            return "; ".join(certs), 1.0
+            
+        # Skills
+        if any(term in q_lower for term in ["skill", "technology", "tech"]):
+            skills = []
+            skills.extend(RESUME_DATA["skills_and_technologies"]["cloud_and_net"])
+            skills.extend(RESUME_DATA["skills_and_technologies"]["tools"][:5])  # First 5 tools
+            return ", ".join(skills), 1.0
+            
+        # Programming languages
+        if "programming" in q_lower and "language" in q_lower:
+            return ", ".join(RESUME_DATA["skills_and_technologies"]["programming_languages"]), 1.0
+            
+        # Azure
+        if "azure" in q_lower:
+            return "3+ years experience with Azure and Azure DevOps. Microsoft Certified: Azure Administrator Associate (2021), Azure Fundamentals (2020). Managed Azure DevOps releases, reducing deployment errors by 40%.", 1.0
+            
+        # Education
+        if any(term in q_lower for term in ["education", "degree", "university", "college"]):
+            edu = RESUME_DATA["education"]
+            return f"{', '.join(edu['degrees'])} from {edu['university']}, graduated {edu['honors']} in {edu['graduation_year']}", 1.0
+            
+        # Contact
+        if any(term in q_lower for term in ["contact", "email", "linkedin"]):
+            contact = RESUME_DATA["contact_information"]
+            return f"Email: {contact['email']}, LinkedIn: {contact['linkedin']}, Location: {contact['location']}", 1.0
+            
+    except Exception as e:
+        logger.error(f"Error in simple answer extraction: {str(e)}")
+    
+    return "", 0.0
 
 # Load external CSS file for cleaner code organization
 def load_css():
@@ -90,10 +181,6 @@ def load_css():
 # Apply the professional styling
 load_css()
 
-# Initialize session state for answer tracking
-if 'current_answer_id' not in st.session_state:
-    st.session_state.current_answer_id = None
-
 # Professional headshot setup
 current_dir = os.path.dirname(os.path.abspath(__file__))
 image_extensions = ['.jpg', '.jpeg', '.png', '.webp']
@@ -123,59 +210,20 @@ Welcome to Frank's Candidate Concierge! I'm your AI assistant, ready to answer q
 skills, certifications, and more. Feel free to ask me anything about Frank's qualifications!
 """)
 
-# Function to check if API is ready (only when feedback is enabled)
-def is_api_ready():
-    if not ENABLE_FEEDBACK:
-        return True  # Skip API check when feedback is disabled
-    try:
-        response = requests.get("http://localhost:8000")
-        return response.status_code == 200
-    except:
-        return False
-
-# Conditional backend initialization
-if ENABLE_FEEDBACK and not is_api_ready():
-    st.warning("Please wait while the system is being initialized...")
+# Initialize the AI model in the background
+if MODEL_AVAILABLE:
+    # Try to load the full AI model
+    with st.spinner("🔄 Loading AI model... This may take a moment on first run."):
+        qa_model, model_loaded = load_qa_model()
     
-    # Create placeholders for loading elements
-    progress_placeholder = st.empty()
-    status_placeholder = st.empty()
-    
-    with progress_placeholder.container():
-        progress_bar = st.progress(0)
-    
-    # Show progress simulation
-    api_ready = False
-    for i in range(100):
-        # Simulate progress steps
-        if i < 25:
-            status_placeholder.text("Loading model...")
-        elif i < 50:
-            status_placeholder.text("Loading tokenizer...")
-        elif i < 75:
-            status_placeholder.text("Setting up QA pipeline...")
-        else:
-            status_placeholder.text("Loading resume data...")
-        progress_bar.progress(i + 1)
-        time.sleep(0.1)
-        
-        # Check if API is ready
-        if is_api_ready():
-            api_ready = True
-            break
-    
-    # Clear loading elements
-    progress_placeholder.empty()
-    status_placeholder.empty()
-            
-    if api_ready or is_api_ready():
-        st.success("✅ System initialized successfully! Ready to answer your questions.")
+    if model_loaded:
+        st.success("✅ AI model loaded! Ready to answer detailed questions.")
     else:
-        st.error("❌ Failed to initialize the backend. Please refresh the page to try again.")
-elif ENABLE_FEEDBACK:
-    st.success("✅ Ready to answer questions!")
+        st.warning("⚠️ AI model couldn't load, but I can still answer common questions using structured data.")
+        qa_model = None
 else:
-    st.success("✅ Ready to answer questions!")
+    st.warning("⚠️ AI model unavailable, but I can still answer common questions using structured data.")
+    qa_model = None
 
 # Sidebar with profile and example questions
 with st.sidebar:
@@ -208,46 +256,6 @@ with st.sidebar:
         if st.button(question):
             st.session_state.question = question
 
-def submit_feedback(answer_id: int, score: int, was_helpful: bool, comment: str = None):
-    """Submit feedback to the API with detailed logging."""
-    try:
-        logger.info(f"Starting feedback submission - answer_id={answer_id}, score={score}, helpful={was_helpful}")
-        debug_print(f"Submitting feedback for answer_id={answer_id}, score={score}, helpful={was_helpful}")
-        
-        payload = {
-            "answer_id": answer_id,
-            "score": score,
-            "was_helpful": was_helpful,
-            "comment": comment
-        }
-        
-        logger.info(f"Feedback payload: {payload}")
-        debug_print(f"Payload = {payload}")
-        
-        response = requests.post(
-            "http://localhost:8000/feedback",
-            json=payload,
-            timeout=30
-        )
-        
-        logger.info(f"API response - status: {response.status_code}, text: {response.text}")
-        debug_print(f"Response status = {response.status_code}")
-        debug_print(f"Response text = {response.text}")
-        
-        if response.status_code == 200:
-            logger.info("Feedback submitted successfully")
-            debug_print("Feedback submitted successfully!")
-            return True
-        else:
-            logger.error(f"Feedback failed with status {response.status_code}: {response.text}")
-            debug_print(f"Feedback failed with status {response.status_code}", "error")
-            return False
-            
-    except Exception as e:
-        logger.error(f"Exception in submit_feedback: {str(e)}")
-        debug_print(f"Exception in submit_feedback: {str(e)}", "error")
-        return False
-
 # Main interaction area
 question = st.text_input("Ask a question about Frank's qualifications:", 
                         value=st.session_state.get("question", ""),
@@ -256,92 +264,35 @@ question = st.text_input("Ask a question about Frank's qualifications:",
 if question:
     try:
         with st.spinner("🤔 Analyzing resume and generating response..."):
-            response = requests.post(
-                "http://localhost:8000/ask",
-                json={"text": question},
-                timeout=30
-            )
+            answer = ""
+            confidence = 0.0
             
-            if response.status_code == 200:
-                answer_data = response.json()
-                if answer_data["answer"]:
-                    # Check confidence threshold - only show answers for high confidence
-                    confidence = answer_data["confidence"]
-                    
-                    if confidence >= 0.8:
-                        # High confidence - show the answer
-                        st.success(f"Answer: {answer_data['answer']}")
-                        
-                        # Store the answer ID in session state
-                        st.session_state.current_answer_id = answer_data["id"]
-                        debug_print(f"Stored answer_id = {st.session_state.current_answer_id}")
-                        
-                        # Add feedback section
-                        st.write("### Was this answer helpful?")
-                        
-                        debug_print(f"Current session answer_id = {st.session_state.current_answer_id}")
-                        
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            if st.button("👍 Yes"):
-                                debug_print("Yes button clicked!")
-                                if st.session_state.current_answer_id:
-                                    result = submit_feedback(
-                                        answer_id=st.session_state.current_answer_id,
-                                        score=5,
-                                        was_helpful=True
-                                    )
-                                    if result:
-                                        st.success("Thank you for your positive feedback!")
-                                    else:
-                                        st.error("Failed to submit feedback - check debug info above")
-                                else:
-                                    debug_print("No answer_id in session state!", "error")
-                                    
-                        with col2:
-                            if st.button("👎 No"):
-                                debug_print("No button clicked!")
-                                if st.session_state.current_answer_id:
-                                    result = submit_feedback(
-                                        answer_id=st.session_state.current_answer_id,
-                                        score=1,
-                                        was_helpful=False
-                                    )
-                                    if result:
-                                        st.success("Thank you for your feedback!")
-                                    else:
-                                        st.error("Failed to submit feedback - check debug info above")
-                                else:
-                                    debug_print("No answer_id in session state!", "error")
-                        
-                        # Optional detailed feedback
-                        feedback_text = st.text_area("Additional feedback (optional)")
-                        if feedback_text and st.button("Submit detailed feedback"):
-                            if st.session_state.current_answer_id:
-                                result = submit_feedback(
-                                    answer_id=st.session_state.current_answer_id,
-                                    score=3,  # Neutral score for detailed feedback
-                                    was_helpful=True,  # Assume positive if they're giving detailed feedback
-                                    comment=feedback_text
-                                )
-                                if result:
-                                    st.success("Thank you for your detailed feedback!")
-                                else:
-                                    st.error("Failed to submit detailed feedback")
-                            else:
-                                debug_print("No answer_id for detailed feedback!", "error")
-                    else:
-                        # Low confidence - can't provide reliable answer
-                        st.warning("I'm not confident enough to provide a reliable answer to that question. Please try rephrasing your question or use one of the example questions in the sidebar.")
-                else:
-                    st.warning("I couldn't find a specific answer to that question. Try rephrasing or check the example questions.")
+            # Try full AI model first if available
+            if qa_model:
+                try:
+                    answer, confidence = qa_model.answer_question(question)
+                except Exception as e:
+                    logger.error(f"AI model error: {str(e)}")
+                    # Fall back to simple answers
+                    answer, confidence = get_simple_answer(question)
             else:
-                st.error(f"Error: Received status code {response.status_code}")
+                # Use simple structured data answers
+                answer, confidence = get_simple_answer(question)
+            
+            if answer and confidence >= 0.5:
+                st.success(f"**Answer:** {answer}")
                 
-    except requests.exceptions.ConnectionError:
-        st.warning("⏳ The AI model is still initializing. Please wait a moment and try again...")
+                # Show confidence and source for debugging
+                if DEBUG_MODE:
+                    source = "AI Model" if qa_model and confidence < 1.0 else "Structured Data"
+                    st.write(f"Debug: Confidence = {confidence:.2f}, Source = {source}")
+                    
+            else:
+                st.warning("I couldn't find a specific answer to that question. Please try rephrasing your question or use one of the example questions in the sidebar.")
+                
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
+        logger.error(f"Question processing error: {str(e)}")
 
 # Add a footer with instructions
 st.markdown("---")
@@ -357,7 +308,8 @@ st.markdown("""
 if DEBUG_MODE:
     with st.expander("🐛 Debug Info"):
         st.write(f"Debug Mode: {DEBUG_MODE}")
-        st.write(f"Current answer_id in session: {st.session_state.current_answer_id}")
+        st.write(f"Model Available: {MODEL_AVAILABLE}")
+        st.write(f"AI Model Loaded: {qa_model is not None}")
         st.write(f"Session state keys: {list(st.session_state.keys())}")
         if st.button("Clear session state"):
             st.session_state.clear()
