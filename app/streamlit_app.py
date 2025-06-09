@@ -162,12 +162,12 @@ def load_css():
         st.markdown("""
         <style>
         div.stImage > img {
-            width: 200px !important;
-            height: 200px !important;
+            width: 160px !important;
+            height: 160px !important;
             border-radius: 50% !important;
             object-fit: cover !important;
-            border: 6px solid #ffffff !important;
-            margin: 20px auto !important;
+            border: 4px solid #ffffff !important;
+            margin: 15px auto !important;
             display: block !important;
         }
         .stImage {
@@ -289,8 +289,7 @@ with st.sidebar:
         "What certifications does Frank have?",
         "What are Frank's technical skills?",
         "What programming languages does Frank know?",
-        "What is Frank's experience with Azure?",
-        "What was Frank's role at The Marker Group?"
+        "What is Frank's experience with Azure?"
     ]
     
     for question in example_questions:
