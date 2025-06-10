@@ -203,84 +203,74 @@ else:
 
 # Responsive header layout
 st.markdown("""
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-/* Mobile-first approach - force light theme everywhere */
-* {
-    -webkit-tap-highlight-color: transparent;
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 80px;
+    margin-bottom: 1rem;
 }
 
-/* Base styling to prevent dark mode issues */
-.stApp {
-    background-color: #ffffff !important;
-    color: #333333 !important;
+.header-title {
+    margin: 0;
+    font-size: 3rem;
+    line-height: 1;
 }
 
-/* CSS hover effects for LinkedIn buttons */
+.linkedin-button {
+    background: linear-gradient(135deg, #FFD700, #FFA500, #FF8C00);
+    border-radius: 6px;
+    padding: 8px;
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    text-decoration: none;
+}
+
 .linkedin-button:hover {
-    transform: scale(1.05) !important;
-    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4) !important;
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
 }
-/* Force light theme and fix mobile issues */
+
+.linkedin-button-text {
+    color: white;
+    font-weight: 600;
+    font-size: 14px;
+    margin-left: 8px;
+}
+
+/* Mobile responsiveness */
 @media (max-width: 768px) {
     .header-container {
-        flex-direction: column !important;
-        align-items: center !important;
-        height: auto !important;
-        gap: 15px !important;
+        flex-direction: column;
+        align-items: center;
+        height: auto;
+        gap: 15px;
     }
     .header-title {
-        font-size: 2rem !important;
-        text-align: center !important;
-        color: #333333 !important;
+        font-size: 2rem;
+        text-align: center;
     }
     .linkedin-button-text {
-        display: none !important;
+        display: none;
     }
     .linkedin-button {
-        padding: 6px !important;
-    }
-    
-    /* Override any dark mode styling */
-    .stApp, .stApp > div, .main, .block-container {
-        background-color: #ffffff !important;
-        color: #333333 !important;
-    }
-    
-    /* Force input field styling */
-    input[type="text"], .stTextInput input {
-        background-color: #ffffff !important;
-        color: #333333 !important;
-        border: 2px solid #e0e0e0 !important;
-        -webkit-appearance: none !important;
-        appearance: none !important;
-    }
-    
-    /* Ensure all text is readable */
-    p, div, span, h1, h2, h3 {
-        color: #333333 !important;
+        padding: 6px;
     }
 }
 </style>
-<div class="header-container" style="display: flex; align-items: center; justify-content: space-between; height: 80px; margin-bottom: 1rem;">
-    <h1 class="header-title" style="margin: 0; font-size: 3rem; line-height: 1;">Frank's Candidate Concierge</h1>
-    <div style="display: flex; align-items: center;">
-        <a href="https://www.linkedin.com/in/frank-tallerine/" target="_blank" style="text-decoration: none; margin-left: 20px;">
-            <div class="linkedin-button" style="
-                background: linear-gradient(135deg, #FFD700, #FFA500, #FF8C00);
-                border-radius: 6px;
-                padding: 8px;
-                box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
-                display: flex;
-                align-items: center;
-                                cursor: pointer;
-            ">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="white" style="margin-right: 8px;">
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
-                <span class="linkedin-button-text" style="color: white; font-weight: 600; font-size: 14px;">Connect on LinkedIn</span>
-            </div>
+
+<div class="header-container">
+    <h1 class="header-title">Frank's Candidate Concierge</h1>
+    <div>
+        <a href="https://www.linkedin.com/in/frank-tallerine/" target="_blank" class="linkedin-button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+            <span class="linkedin-button-text">Connect on LinkedIn</span>
         </a>
     </div>
 </div>
@@ -322,23 +312,33 @@ with st.sidebar:
     
     # Add LinkedIn connection in sidebar
     st.markdown("""
-    <div style="text-align: center; margin: 20px 0;">
-        <a href="https://www.linkedin.com/in/frank-tallerine/" target="_blank" style="text-decoration: none;">
-            <div style="
-                background: linear-gradient(135deg, #FFD700, #FFA500);
-                border-radius: 50px;
-                padding: 10px 16px;
-                box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
-                transition: all 0.2s ease;
-                display: inline-flex;
-                align-items: center;
-                                cursor: pointer;
-            ">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="white" style="margin-right: 6px;">
-                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
-                <span style="color: white; font-weight: 600; font-size: 12px;">LinkedIn</span>
-            </div>
+    <style>
+    .sidebar-linkedin {
+        text-align: center;
+        margin: 20px 0;
+    }
+    .sidebar-linkedin-button {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        border-radius: 50px;
+        padding: 10px 16px;
+        box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .sidebar-linkedin-button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    }
+    </style>
+    <div class="sidebar-linkedin">
+        <a href="https://www.linkedin.com/in/frank-tallerine/" target="_blank" class="sidebar-linkedin-button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white" style="margin-right: 6px;">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+            </svg>
+            <span style="color: white; font-weight: 600; font-size: 12px;">LinkedIn</span>
         </a>
     </div>
     """, unsafe_allow_html=True)
