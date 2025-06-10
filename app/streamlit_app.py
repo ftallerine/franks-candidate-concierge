@@ -1,3 +1,6 @@
+# Streamlit app for Frank's Candidate Concierge
+# Professional resume Q&A assistant - Updated for mobile compatibility
+
 import streamlit as st
 import sys
 import os
