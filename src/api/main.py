@@ -1,3 +1,6 @@
+import os
+os.makedirs("logs", exist_ok=True)
+
 from fastapi import FastAPI, HTTPException, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ValidationError
@@ -9,7 +12,6 @@ from typing import List, Optional
 from datetime import datetime
 import logging
 import json
-import os
 from pathlib import Path
 
 # Set up logging
@@ -95,17 +97,17 @@ async def ask_question(question: Question, db: Session = Depends(get_db)):
     try:
         logger.info(f"Question received: {question.text}")
         db_ops = DatabaseOperations(db)
-        answer_text, confidence = qa_model.answer_question(question.text)
+        answer_text, confidence, source = qa_model.answer_question(question.text)
         
         # Store the interaction
         _, answer_record = db_ops.store_qa_interaction(
             question_text=question.text,
             answer_text=answer_text,
             confidence=confidence,
-            source='qa_model' if confidence > 0.7 else 'structured'
+            source=source
         )
         
-        logger.info(f"Answer generated - ID: {answer_record.id}, Confidence: {confidence}")
+        logger.info(f"Answer generated - ID: {answer_record.id}, Confidence: {confidence}, Source: {source}")
         
         return Answer(
             id=answer_record.id,
