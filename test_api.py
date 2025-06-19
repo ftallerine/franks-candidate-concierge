@@ -6,55 +6,54 @@ import requests
 import json
 from datetime import datetime
 
-def test_api():
-    """Test the deployed API endpoints"""
-    base_url = "https://franks-candidate-concierge.onrender.com"
+API_BASE_URL = "https://franks-candidate-concierge.onrender.com"
+
+def test_root():
+    response = requests.get(f"{API_BASE_URL}/")
+    print("\nTesting root endpoint:")
+    print(f"Status: {response.status_code}")
+    print(f"Response: {response.json()}")
+
+def test_health():
+    response = requests.get(f"{API_BASE_URL}/health")
+    print("\nTesting health endpoint:")
+    print(f"Status: {response.status_code}")
+    print(f"Response: {response.json()}")
+
+def test_ask_question(question):
+    headers = {
+        "Content-Type": "application/json"
+    }
+    data = {
+        "text": question
+    }
     
-    # Test simple questions that should work with structured data
-    test_questions = [
-        "What certifications does Frank have?",
-        "What is Frank's current role?",
-        "What are Frank's technical skills?",
-        "Where is Frank located?",
-        "What is Frank's experience with Azure?"
-    ]
+    response = requests.post(
+        f"{API_BASE_URL}/ask",
+        headers=headers,
+        json=data
+    )
     
-    print("Testing API endpoints...\n")
-    
-    # Test health endpoint
-    try:
-        response = requests.get(f"{base_url}/health")
-        print(f"Health Check Status: {response.status_code}")
-        print(f"Response: {json.dumps(response.json(), indent=2)}\n")
-    except Exception as e:
-        print(f"Error checking health: {str(e)}\n")
-    
-    # Test questions
-    print("Testing questions:")
-    for question in test_questions:
-        try:
-            print(f"\nQuestion: {question}")
-            response = requests.post(
-                f"{base_url}/ask",
-                json={"text": question},
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                print(f"Status: ✅ Success")
-                print(f"Answer: {result.get('answer', 'No answer')}")
-                print(f"Confidence: {result.get('confidence', 'Unknown')}")
-            else:
-                print(f"Status: ❌ Failed ({response.status_code})")
-                print(f"Error: {response.text}")
-                
-        except Exception as e:
-            print(f"Error: {str(e)}")
-        
-        print("-" * 80)
+    print(f"\nTesting ask endpoint with question: '{question}'")
+    print(f"Status: {response.status_code}")
+    print(f"Response: {response.json()}")
 
 if __name__ == "__main__":
+    # Test all endpoints
+    test_root()
+    test_health()
+    
+    # Test some sample questions
+    test_questions = [
+        "What certifications do you have?",
+        "What is your current role?",
+        "What are your cloud skills?",
+        "How much experience do you have?"
+    ]
+    
+    for question in test_questions:
+        test_ask_question(question)
+
     print("\n🧪 Testing Frank's Candidate Concierge API")
     print("=" * 50)
     test_api()
