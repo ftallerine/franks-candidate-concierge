@@ -76,47 +76,59 @@ class Answer(BaseModel):
 
 def get_structured_answer(question: str) -> tuple[str, float]:
     """Get answer from structured data based on question type."""
+    # Normalize question text to handle pronouns consistently
     q = question.lower()
+    q = q.replace("your", "frank's")
+    q = q.replace("you", "frank")
+    q = q.replace("his", "frank's")
+    q = q.replace("he", "frank")
     
     # Certifications
     if any(term in q for term in ["certification", "certified", "cert"]):
         return f"Frank holds the following certifications:\n" + "\n".join(f"• {cert}" for cert in RESUME_DATA["certifications"]), 1.0
     
     # Current role
-    if any(term in q for term in ["current role", "current position", "current job"]):
+    if any(term in q for term in ["current role", "current position", "current job", "work", "do for work", "do for a living"]):
         return f"Frank's current role is {RESUME_DATA['current_role']}", 1.0
     
     # Location
-    if any(term in q for term in ["where", "location", "based", "live"]):
+    if any(term in q for term in ["where", "location", "based", "live", "located", "from"]):
         return f"Frank is located in {RESUME_DATA['contact']['location']}", 1.0
     
     # Contact
-    if any(term in q for term in ["contact", "email", "reach"]):
+    if any(term in q for term in ["contact", "email", "reach", "get in touch"]):
         contact = RESUME_DATA["contact"]
         return f"You can contact Frank via email at {contact['email']}", 1.0
     
     # Skills
-    if "skill" in q or "technology" in q or "tool" in q:
+    if any(term in q for term in ["skill", "technology", "tool", "tech", "know", "can do"]):
         if "cloud" in q or "azure" in q:
             skills = RESUME_DATA["skills"]["cloud"]
+            return f"Frank's cloud and Azure skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
         elif "programming" in q or "language" in q or "code" in q:
             skills = RESUME_DATA["skills"]["programming"]
+            return f"Frank's programming skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
         elif "tool" in q:
             skills = RESUME_DATA["skills"]["tools"]
+            return f"Frank's technical tools expertise includes:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
         elif "business" in q:
             skills = RESUME_DATA["skills"]["business"]
+            return f"Frank's business and process skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
         else:
             # All skills
-            skills = (
-                RESUME_DATA["skills"]["cloud"] +
-                RESUME_DATA["skills"]["programming"] +
-                RESUME_DATA["skills"]["tools"] +
-                RESUME_DATA["skills"]["business"]
-            )
-        return "Frank's relevant skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
+            all_skills = {
+                "Cloud & Azure": RESUME_DATA["skills"]["cloud"],
+                "Programming": RESUME_DATA["skills"]["programming"],
+                "Tools": RESUME_DATA["skills"]["tools"],
+                "Business": RESUME_DATA["skills"]["business"]
+            }
+            response = "Frank's skills by category:\n\n"
+            for category, skills in all_skills.items():
+                response += f"{category}:\n" + "\n".join(f"• {skill}" for skill in skills) + "\n\n"
+            return response.strip(), 1.0
     
     # Experience
-    if "experience" in q:
+    if any(term in q for term in ["experience", "how long", "years", "time"]):
         if "business" in q or "ba" in q:
             return f"Frank has {RESUME_DATA['experience']['total_ba']} of Business Analysis experience.", 1.0
         elif "azure" in q:
@@ -129,7 +141,7 @@ def get_structured_answer(question: str) -> tuple[str, float]:
             exp = RESUME_DATA["experience"]
             return f"Frank's experience includes:\n• Business Analysis: {exp['total_ba']}\n• Azure: {exp['azure']}\n• SQL: {exp['sql']}\n• Scrum: {exp['scrum']}", 1.0
     
-    return "I'm not sure about that. Try asking about Frank's certifications, skills, experience, or current role.", 0.5
+    return "I can provide information about Frank's certifications, skills, experience, current role, or contact details. Please ask about any of these topics.", 0.5
 
 @app.get("/")
 async def root():

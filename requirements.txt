@@ -22,11 +22,11 @@ python-dotenv>=1.0.0
 # Note: Backend dependencies (FastAPI, SQLAlchemy, etc.) removed for V1 Streamlit-only deployment 
 
 # Core Dependencies
-fastapi>=0.110.0
-uvicorn>=0.27.1
+fastapi==0.104.1
+uvicorn==0.24.0
 python-dotenv>=1.0.0
 requests>=2.31.0
-pydantic>=2.6.1
+pydantic==2.4.2
 
 # Database
 sqlalchemy>=2.0.0
@@ -37,7 +37,7 @@ alembic>=1.13.1
 streamlit>=1.35.0
 
 # Utilities
-python-multipart>=0.0.9
+python-multipart==0.0.6
 
 # Added openai package
 openai>=1.0.0 
