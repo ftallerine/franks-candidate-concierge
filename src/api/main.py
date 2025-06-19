@@ -8,6 +8,9 @@ from src.models.qa_model import QAModel
 from datetime import datetime
 import logging
 
+# Import database initialization
+from startup import init_database
+
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
@@ -18,6 +21,9 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Initialize database before creating the FastAPI app
+init_database()
 
 app = FastAPI(
     title="Frank's Candidate Concierge API",

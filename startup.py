@@ -82,5 +82,8 @@ def main():
         logger.error(f"Failed to start application: {str(e)}")
         sys.exit(1)
 
+# Initialize database when this module is imported
+init_database()
+
 if __name__ == "__main__":
     main() 
