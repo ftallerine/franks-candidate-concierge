@@ -6,7 +6,7 @@ No database dependencies, using only structured data responses
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 import logging
 
@@ -27,8 +27,31 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI
 app = FastAPI(
     title="Frank's Candidate Concierge API",
-    description="API for answering questions about Frank's resume",
+    description="""
+    An API for answering questions about Frank's professional experience and qualifications.
+    
+    ## Available Topics
+    * Certifications
+    * Current Role
+    * Skills (Cloud, Programming, Tools, Business)
+    * Experience
+    * Contact Information
+    
+    ## Example Questions
+    * "What certifications do you have?"
+    * "What is your current role?"
+    * "What are your cloud skills?"
+    * "How much experience do you have with Azure?"
+    * "Where are you located?"
+    """,
     version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    contact={
+        "name": "Frank Tallerine",
+        "email": "REDACTED_EMAIL@example.com ",
+    },
 )
 
 # Add CORS middleware
@@ -68,11 +91,25 @@ RESUME_DATA = {
 }
 
 class Question(BaseModel):
-    text: str
+    """A question about Frank's qualifications."""
+    text: str = Field(
+        ...,
+        description="The question to ask about Frank's experience, skills, or qualifications",
+        example="What certifications do you have?"
+    )
 
 class Answer(BaseModel):
-    answer: str
-    confidence: float
+    """An answer to a question about Frank's qualifications."""
+    answer: str = Field(
+        ...,
+        description="The detailed answer to the question"
+    )
+    confidence: float = Field(
+        ...,
+        description="Confidence score for the answer (0.0 to 1.0)",
+        ge=0.0,
+        le=1.0
+    )
 
 def get_structured_answer(question: str) -> tuple[str, float]:
     """Get answer from structured data based on question type."""
@@ -145,20 +182,44 @@ def get_structured_answer(question: str) -> tuple[str, float]:
     
     return "I can provide information about Frank's certifications, skills, experience, current role, or contact details. Please ask about any of these topics.", 0.5
 
-@app.get("/")
+@app.get("/",
+    summary="Welcome Message",
+    description="Returns a welcome message to confirm the API is running.",
+    response_description="A simple welcome message"
+)
 async def root():
+    """Get a welcome message."""
     return {"message": "Welcome to Frank's Candidate Concierge API"}
 
-@app.get("/health")
+@app.get("/health",
+    summary="Health Check",
+    description="Check if the API is healthy and running.",
+    response_description="Health status and timestamp"
+)
 async def health_check():
-    """Simple health check."""
+    """Check if the API is healthy."""
     return {
         "status": "healthy",
         "message": "API is running",
         "timestamp": datetime.now().isoformat()
     }
 
-@app.post("/ask", response_model=Answer)
+@app.post("/ask",
+    response_model=Answer,
+    summary="Ask a Question",
+    description="""
+    Ask a question about Frank's qualifications, experience, or skills.
+    
+    The API will analyze your question and provide a relevant answer based on Frank's:
+    * Professional certifications
+    * Current role and responsibilities
+    * Technical skills (Cloud, Programming, Tools)
+    * Business skills
+    * Years of experience
+    * Contact information
+    """,
+    response_description="The answer to your question with a confidence score"
+)
 async def ask_question(question: Question):
     """Get an answer to a question about Frank's resume."""
     try:
@@ -175,7 +236,10 @@ async def ask_question(question: Question):
         )
     except Exception as e:
         logger.error(f"Error in ask_question: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 if __name__ == "__main__":
     import uvicorn
