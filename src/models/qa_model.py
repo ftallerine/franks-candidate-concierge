@@ -9,6 +9,7 @@ class QAModel:
     def __init__(self):
         try:
             print("\n=== Starting Model Initialization ===")
+            print("Loading resume data...")
             
             # Initialize response formatter
             self.formatter = ResponseFormatter()
@@ -63,7 +64,6 @@ class QAModel:
             ]
             
             # Load structured data immediately (fast)
-            print("Loading resume data...")
             self.structured_data = RESUME_DATA
             self.resume_content = self._create_resume_text()
             
@@ -249,121 +249,40 @@ class QAModel:
         # Achievements and metrics
         if any(term in q for term in ["achievement", "accomplish", "metrics", "results", "impact"]):
             return self.formatter.format_achievements(self.structured_data["key_achievements_summary"]), 1.0
-        
-        # Experience with specific technology (enhanced)
-        tech_mapping = {
-            "azure": ("Azure", "Azure DevOps"),
-            "sql": ("SQL", "Database"),
-            "python": ("Python", "Programming"),
-            "power bi": ("Power BI", "Data Visualization"),
-            "git": ("Git", "Version Control"),
-            ".net": (".NET", "Framework")
-        }
-        
-        for tech, (primary_tag, secondary_tag) in tech_mapping.items():
-            if tech in q:
-                return self.formatter.format_achievements(
-                    self.structured_data["key_achievements_summary"],
-                    filter_tags=[primary_tag, secondary_tag]
-                ), 1.0
-                    
-        # Languages (human languages only, since programming languages handled above)
-        if "language" in q and not ("programming" in q or "coding" in q or "technical" in q):
-            return self.formatter.format_languages(self.structured_data["languages"]), 1.0
-                
-        # Projects
-        if "project" in q or "medical record" in q or "ner" in q or "ai" in q:
-            return self.formatter.format_projects(self.structured_data["projects"]), 1.0
             
-        # Salary expectations
-        if "salary" in q or "compensation" in q or "pay" in q or "money" in q:
-            return self.formatter.format_salary_expectations(self.structured_data["salary_expectations"]), 1.0
-            
-        return "", 0.0
-    
+        return None, 0.0
+
     def _get_relevant_context(self, question: str) -> str:
-        """Return only the relevant sections of the resume as context based on the question."""
-        q = question.lower()
-        context_parts = []
-
-        # Education-related
-        if any(term in q for term in ["school", "university", "college", "education", "degree", "graduate"]):
-            context_parts.append(self.formatter.format_education(self.structured_data["education"]))
-
-        # Certification-related
-        if any(term in q for term in ["certification", "certified", "certificate", "scrum", "azure certified"]):
-            context_parts.append(self.formatter.format_certifications(self.structured_data["certifications"]))
-
-        # Experience-related
-        if any(term in q for term in ["experience", "work history", "job", "role", "position", "responsibility"]):
-            context_parts.append(self.formatter.format_experience(self.structured_data["professional_experience"]))
-
-        # Skills/technologies
-        if any(term in q for term in ["skill", "technology", "tools", "programming", "language", "framework"]):
-            context_parts.append(self.formatter.format_skills(self.structured_data["skills_and_technologies"]))
-
-        # Achievements
-        if "achievement" in q or "accomplishment" in q or "result" in q:
-            context_parts.append(self.formatter.format_achievements(self.structured_data["key_achievements_summary"]))
-
-        # Projects
-        if "project" in q:
-            context_parts.append(self.formatter.format_projects(self.structured_data["projects"]))
-
-        # Contact/location
-        if any(term in q for term in ["contact", "email", "linkedin", "location", "based", "live"]):
-            context_parts.append(self.formatter.format_contact(self.structured_data["contact_information"]))
-
-        # If no keywords matched, fall back to summary
-        if not context_parts:
-            context_parts.append("\n".join(self.structured_data.get("professional_summary", [])))
-
-        return "\n".join(context_parts)
+        """Get relevant context from resume for ML model."""
+        # For now, just return the full resume text
+        # In the future, we can implement better context selection
+        return self.resume_content
 
     def answer_question(self, question: str) -> tuple[str, float, str]:
-        """Answer a question about the resume using structured data, ML, then GPT fallback."""
+        """Answer a question about Frank's resume."""
         try:
-            # Try to get answer from structured data first
+            # First try to get answer from structured data
             answer, confidence = self._get_structured_answer(question)
-            if answer and confidence > 0.7:
-                return self.formatter.add_confidence_note(answer, confidence), confidence, "structured"
-
-            # Load ML model if not already loaded
+            if answer:
+                return answer, confidence, "structured"
+            
+            # If no structured answer, try ML model
             if not self._model_loaded:
                 self._load_ml_model()
-
-            # Fall back to QA model with context filtering (only if model loaded successfully)
-            if self._model_loaded and self.qa_pipeline:
-                try:
-                    context = self._get_relevant_context(question)
-                    result = self.qa_pipeline(
-                        question=question,
-                        context=context,
-                        max_answer_len=150,
-                        handle_impossible_answer=True
-                    )
-
-                    answer = result["answer"].strip()
-                    confidence = result["score"]
-
-                    if answer and confidence > 0.7:
-                        return self.formatter.add_confidence_note(answer, confidence, "AI model"), confidence, "qa_model"
-                except Exception as ml_error:
-                    print(f"ML model error: {str(ml_error)}")
-                    # Continue to GPT fallback
-
-            # Final fallback: GPT
-            try:
-                gpt_answer = self.gpt_service.get_completion(question)
-                return self.formatter.add_confidence_note(gpt_answer, 0.6, "GPT fallback"), 0.6, "gpt"
-            except Exception as gpt_error:
-                print(f"GPT error: {str(gpt_error)}")
-                # Ultimate fallback - use structured data with lower confidence
-                answer, _ = self._get_structured_answer(question)
-                if answer:
-                    return self.formatter.add_confidence_note(answer, 0.5, "structured fallback"), 0.5, "structured_fallback"
-                return "I'm having trouble processing your question right now. Please try asking about Frank's certifications, experience, or skills.", 0.0, "fallback"
-
+            
+            if self._model_loaded:
+                context = self._get_relevant_context(question)
+                result = self.qa_pipeline(question=question, context=context)
+                
+                # Check if answer seems valid
+                if result["score"] > 0.1:  # Confidence threshold
+                    return result["answer"], result["score"], "qa_model"
+            
+            # If all else fails, use GPT
+            gpt_answer = self.gpt_service.get_answer(question, self.resume_content)
+            return gpt_answer, 0.8, "gpt"  # Default confidence for GPT
+            
         except Exception as e:
-            print(f"Error processing question: {str(e)}")
-            return "I encountered an error while processing your question. Please try again.", 0.0, "error"
+            print(f"Error answering question: {str(e)}")
+            # Return a generic error message
+            return "I apologize, but I encountered an error while processing your question. Please try rephrasing it.", 0.0, "error"

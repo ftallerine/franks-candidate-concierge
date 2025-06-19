@@ -8,9 +8,6 @@ from src.models.qa_model import QAModel
 from datetime import datetime
 import logging
 
-# Import database initialization
-from startup import init_database
-
 # Set up logging
 logging.basicConfig(
     level=logging.INFO,
@@ -21,9 +18,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-
-# Initialize database before creating the FastAPI app
-init_database()
 
 app = FastAPI(
     title="Frank's Candidate Concierge API",
@@ -69,10 +63,10 @@ async def ask_question(question: Question):
     try:
         logger.info(f"Question received: {question.text}")
         
-        # Get answer from QA model
-        answer_text, confidence, source = qa_model.answer_question(question.text)
+        # Get answer from QA model without database storage
+        answer_text, confidence, _ = qa_model.answer_question(question.text)
         
-        logger.info(f"Answer generated - Confidence: {confidence}, Source: {source}")
+        logger.info(f"Answer generated - Confidence: {confidence}")
         
         return Answer(
             answer=answer_text,
