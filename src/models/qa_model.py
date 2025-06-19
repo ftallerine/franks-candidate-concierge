@@ -8,11 +8,7 @@ from .gpt_service import GPTService
 class QAModel:
     def __init__(self):
         try:
-            # Use a smaller model for faster loading
-            model_name = "deepset/minilm-uncased-squad2"
-            
             print("\n=== Starting Model Initialization ===")
-            print(f"Loading {model_name}...")
             
             # Initialize response formatter
             self.formatter = ResponseFormatter()
@@ -66,42 +62,67 @@ class QAModel:
                 }
             ]
             
-            # Initialize progress indicators
-            steps = ["Loading model", "Loading tokenizer", "Setting up pipeline", "Loading resume data"]
-            total_steps = len(steps)
-            
-            print(f"\n[1/{total_steps}] Loading model...")
-            self.model = AutoModelForQuestionAnswering.from_pretrained(model_name, force_download=True)
-            
-            print(f"[2/{total_steps}] Loading tokenizer...")
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name, force_download=True)
-            
-            print(f"[3/{total_steps}] Setting up QA pipeline...")
-            self.qa_pipeline = pipeline(
-                "question-answering",
-                model=self.model,
-                tokenizer=self.tokenizer,
-                device=-1,  # Force CPU
-                handle_impossible_answer=True,
-                max_answer_len=150,  # Allow longer answers for better context
-                max_seq_len=512,  # Maximum sequence length
-                doc_stride=128  # Overlap between chunks when splitting long documents
-            )
-            
-            print(f"[4/{total_steps}] Loading resume data...")
+            # Load structured data immediately (fast)
+            print("Loading resume data...")
             self.structured_data = RESUME_DATA
             self.resume_content = self._create_resume_text()
             
+            # Initialize GPT service
             self.gpt_service = GPTService()
+            
+            # Lazy loading for ML model (will be loaded on first use)
+            self.model = None
+            self.tokenizer = None
+            self.qa_pipeline = None
+            self.model_name = "deepset/minilm-uncased-squad2"
+            self._model_loaded = False
             
             print("\n=== Model Initialization Complete! ===")
             print("Ready to answer questions about Frank's qualifications!")
-            print("Using device:", "CPU" if self.qa_pipeline.device.type == "cpu" else "GPU")
+            print("ML model will be loaded on first use for better startup performance.")
             
         except Exception as e:
             print("\n=== ERROR DURING INITIALIZATION ===")
             print(f"Error initializing model: {str(e)}")
             raise
+
+    def _load_ml_model(self):
+        """Lazy load the ML model only when needed."""
+        if not self._model_loaded:
+            try:
+                print(f"\n=== Loading ML Model ({self.model_name}) ===")
+                print("This may take 30-60 seconds on first use...")
+                
+                self.model = AutoModelForQuestionAnswering.from_pretrained(
+                    self.model_name, 
+                    force_download=False,  # Changed to False for faster loading
+                    local_files_only=True  # Use cached version if available
+                )
+                
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    self.model_name, 
+                    force_download=False,
+                    local_files_only=True
+                )
+                
+                self.qa_pipeline = pipeline(
+                    "question-answering",
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                    device=-1,  # Force CPU
+                    handle_impossible_answer=True,
+                    max_answer_len=150,
+                    max_seq_len=512,
+                    doc_stride=128
+                )
+                
+                self._model_loaded = True
+                print("=== ML Model Loaded Successfully! ===")
+                
+            except Exception as e:
+                print(f"Error loading ML model: {str(e)}")
+                # Fallback to structured data only
+                self._model_loaded = False
 
     def _create_resume_text(self) -> str:
         """Create resume text from structured data for QA pipeline fallback."""
@@ -307,24 +328,41 @@ class QAModel:
             if answer and confidence > 0.7:
                 return self.formatter.add_confidence_note(answer, confidence), confidence, "structured"
 
-            # Fall back to QA model with context filtering
-            context = self._get_relevant_context(question)
-            result = self.qa_pipeline(
-                question=question,
-                context=context,
-                max_answer_len=150,
-                handle_impossible_answer=True
-            )
+            # Load ML model if not already loaded
+            if not self._model_loaded:
+                self._load_ml_model()
 
-            answer = result["answer"].strip()
-            confidence = result["score"]
+            # Fall back to QA model with context filtering (only if model loaded successfully)
+            if self._model_loaded and self.qa_pipeline:
+                try:
+                    context = self._get_relevant_context(question)
+                    result = self.qa_pipeline(
+                        question=question,
+                        context=context,
+                        max_answer_len=150,
+                        handle_impossible_answer=True
+                    )
 
-            if answer and confidence > 0.7:
-                return self.formatter.add_confidence_note(answer, confidence, "AI model"), confidence, "qa_model"
+                    answer = result["answer"].strip()
+                    confidence = result["score"]
+
+                    if answer and confidence > 0.7:
+                        return self.formatter.add_confidence_note(answer, confidence, "AI model"), confidence, "qa_model"
+                except Exception as ml_error:
+                    print(f"ML model error: {str(ml_error)}")
+                    # Continue to GPT fallback
 
             # Final fallback: GPT
-            gpt_answer = self.gpt_service.get_completion(question)
-            return self.formatter.add_confidence_note(gpt_answer, 0.6, "GPT fallback"), 0.6, "gpt"
+            try:
+                gpt_answer = self.gpt_service.get_completion(question)
+                return self.formatter.add_confidence_note(gpt_answer, 0.6, "GPT fallback"), 0.6, "gpt"
+            except Exception as gpt_error:
+                print(f"GPT error: {str(gpt_error)}")
+                # Ultimate fallback - use structured data with lower confidence
+                answer, _ = self._get_structured_answer(question)
+                if answer:
+                    return self.formatter.add_confidence_note(answer, 0.5, "structured fallback"), 0.5, "structured_fallback"
+                return "I'm having trouble processing your question right now. Please try asking about Frank's certifications, experience, or skills.", 0.0, "fallback"
 
         except Exception as e:
             print(f"Error processing question: {str(e)}")

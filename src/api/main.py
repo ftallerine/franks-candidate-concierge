@@ -96,21 +96,14 @@ async def root():
 async def ask_question(question: Question, db: Session = Depends(get_db)):
     try:
         logger.info(f"Question received: {question.text}")
-        db_ops = DatabaseOperations(db)
+        
+        # Get answer without storing in database
         answer_text, confidence, source = qa_model.answer_question(question.text)
         
-        # Store the interaction
-        _, answer_record = db_ops.store_qa_interaction(
-            question_text=question.text,
-            answer_text=answer_text,
-            confidence=confidence,
-            source=source
-        )
-        
-        logger.info(f"Answer generated - ID: {answer_record.id}, Confidence: {confidence}, Source: {source}")
+        logger.info(f"Answer generated - Confidence: {confidence}, Source: {source}")
         
         return Answer(
-            id=answer_record.id,
+            id=0,  # Dummy ID since we're not storing in database
             answer=answer_text,
             confidence=confidence
         )
@@ -307,4 +300,26 @@ async def run_training_task(training_params: dict):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"} 
+    """Simple health check that doesn't require database or ML model."""
+    return {
+        "status": "healthy",
+        "message": "API is running",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/health/full")
+async def full_health_check(db: Session = Depends(get_db)):
+    """Full health check including database connectivity."""
+    try:
+        # Test database connection
+        db.execute("SELECT 1")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+    
+    return {
+        "status": "healthy",
+        "database": db_status,
+        "ml_model": "lazy_loaded",
+        "timestamp": datetime.now().isoformat()
+    } 
