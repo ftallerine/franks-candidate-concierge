@@ -82,6 +82,8 @@ def get_structured_answer(question: str) -> tuple[str, float]:
     q = q.replace("you", "frank")
     q = q.replace("his", "frank's")
     q = q.replace("he", "frank")
+    q = q.replace("my", "frank's")
+    q = q.replace("i", "frank")
     
     # Certifications
     if any(term in q for term in ["certification", "certified", "cert"]):
@@ -101,7 +103,7 @@ def get_structured_answer(question: str) -> tuple[str, float]:
         return f"You can contact Frank via email at {contact['email']}", 1.0
     
     # Skills
-    if any(term in q for term in ["skill", "technology", "tool", "tech", "know", "can do"]):
+    if any(term in q for term in ["skill", "technology", "tool", "tech", "know", "can do", "expertise", "proficiency"]):
         if "cloud" in q or "azure" in q:
             skills = RESUME_DATA["skills"]["cloud"]
             return f"Frank's cloud and Azure skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
