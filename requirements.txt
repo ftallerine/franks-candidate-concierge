@@ -1,43 +1,15 @@
-# Streamlit Cloud Requirements - V1 Deployment (Python 3.13 Compatible)
-# Core Streamlit and web dependencies
-streamlit>=1.35.0
+# FastAPI API Requirements - Clean Version
+# Core FastAPI dependencies
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic>=2.5.0
+
+# HTTP and utilities
 requests>=2.31.0
-
-# ML and NLP for QA system - Latest compatible versions
-transformers>=4.40.0
-torch>=2.3.0
-datasets>=2.19.0
-
-# Data processing - Python 3.13 compatible versions  
-numpy>=1.26.0
-pandas>=2.2.0
-scikit-learn>=1.4.0
+python-multipart==0.0.6
 
 # Configuration
 python-dotenv>=1.0.0
 
-# Note: Removed accelerate to reduce complexity and potential conflicts
-# Note: Using >= versions for better compatibility with Python 3.13
-
-# Note: Backend dependencies (FastAPI, SQLAlchemy, etc.) removed for V1 Streamlit-only deployment 
-
-# Core Dependencies
-fastapi==0.104.1
-uvicorn==0.24.0
-python-dotenv>=1.0.0
-requests>=2.31.0
-pydantic==2.4.2
-
-# Database
-sqlalchemy>=2.0.0
-psycopg2-binary>=2.9.9
-alembic>=1.13.1
-
-# Frontend (for local development)
-streamlit>=1.35.0
-
-# Utilities
-python-multipart==0.0.6
-
-# Added openai package
+# OpenAI integration
 openai>=1.0.0 
