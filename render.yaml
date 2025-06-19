@@ -3,17 +3,11 @@ services:
     name: franks-candidate-concierge-api
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python startup.py
+    startCommand: python app.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.8.0
-      - key: DATABASE_URL
-        fromDatabase:
-          name: concierge-db
-          property: connectionString
       - key: PORT
         value: 8000
-      - key: PYTHONPATH
-        value: .
     healthCheckPath: /health
     autoDeploy: true 
