@@ -93,17 +93,17 @@ async def root():
     return {"message": "Welcome to Frank's Candidate Concierge API"}
 
 @app.post("/ask", response_model=Answer)
-async def ask_question(question: Question, db: Session = Depends(get_db)):
+async def ask_question(question: Question):
     try:
         logger.info(f"Question received: {question.text}")
         
-        # Get answer without storing in database
+        # Get answer without database
         answer_text, confidence, source = qa_model.answer_question(question.text)
         
         logger.info(f"Answer generated - Confidence: {confidence}, Source: {source}")
         
         return Answer(
-            id=0,  # Dummy ID since we're not storing in database
+            id=0,  # Dummy ID since we're not using database
             answer=answer_text,
             confidence=confidence
         )
