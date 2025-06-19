@@ -3,7 +3,7 @@ services:
     name: franks-candidate-concierge-api
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python startup.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.8.0
@@ -12,4 +12,8 @@ services:
           name: concierge-db
           property: connectionString
       - key: PORT
-        value: 8000 
+        value: 8000
+      - key: PYTHONPATH
+        value: .
+    healthCheckPath: /health
+    autoDeploy: true 
