@@ -2,6 +2,11 @@
    Frank's Candidate Concierge - Professional Styling
    ============================================== */
 
+/* Hide the text on the LinkedIn button to make it icon-only */
+.linkedin-button-text {
+    display: none !important;
+}
+
 /* === CIRCULAR PROFILE IMAGE === */
 div.stImage > img {
     width: 160px !important;
@@ -129,10 +134,6 @@ header {visibility: hidden;}
         font-size: 2rem !important;
         text-align: center !important;
         color: #333333 !important;
-    }
-    
-    .linkedin-button-text {
-        display: none !important;
     }
     
     .linkedin-button {
