@@ -233,6 +233,95 @@ Welcome to Frank's Candidate Concierge! I'm your AI assistant, ready to answer q
 skills, certifications, and more. Feel free to ask me anything about Frank's qualifications!
 """)
 
+# Predefined answers for common questions
+PREDEFINED_ANSWERS = {
+    "What is Frank's current role?": "Frank's current role is a Technical Business Analyst at The Marker Group.",
+    "What certifications does Frank have?": """Frank has the following certifications:
+
+1. Certified Scrum Master (CSM) obtained in 2019 from Scrum Alliance (Active)
+2. Microsoft Certified: Azure Administrator Associate obtained in 2021 from Microsoft (Active)  
+3. Microsoft Certified: Azure Fundamentals obtained in 2020 from Microsoft (Active)""",
+    "What are Frank's technical skills?": """Frank's technical skills include:
+
+**Programming & Development:**
+- C#, .NET Framework, .NET Core
+- Python, R, SQL
+- JavaScript, HTML, CSS
+- PowerShell scripting
+
+**Cloud & Azure:**
+- Azure Administration
+- Azure DevOps
+- Cloud architecture and migration
+
+**Data & Analytics:**
+- SQL Server, MySQL, PostgreSQL
+- Power BI, Tableau
+- Data analysis and visualization
+- Machine Learning basics
+
+**Agile & Project Management:**
+- Scrum methodology
+- Jira, Azure DevOps
+- Requirements gathering
+- Stakeholder management""",
+    "Tell me about Frank's experience with Agile/Scrum methodologies": """Frank has extensive Agile/Scrum experience:
+
+**Scrum Master Certification:**
+- Certified Scrum Master (CSM) since 2019 - 5+ years active
+- Led Agile process optimization at The Marker Group
+
+**Practical Implementation:**
+- Implemented daily standups and sprint planning
+- Increased team velocity by 75% (from ~12 to 20-25 stories per 2-week sprint)
+- Managed cross-functional teams of 5-10 members
+- Conducted sprint retrospectives and backlog refinement
+
+**Agile Tools & Processes:**
+- Azure DevOps for sprint management
+- User story creation and estimation
+- Release planning and deployment coordination
+- Continuous improvement through retrospectives""",
+    "What is Frank's experience with stakeholder management?": """Frank excels in stakeholder management with proven results:
+
+**Track Record:**
+- Achieved 85% stakeholder approval rate (improved by 55%)
+- Conducted requirement analysis with diverse stakeholder groups
+- Bridged technical and business teams through precise communication
+
+**Key Skills:**
+- Requirements gathering and documentation
+- Translating complex technical concepts for non-technical stakeholders
+- Conflict resolution and negotiation
+- Cross-functional collaboration across departments
+
+**Communication Excellence:**
+- Delivered precise, high-level communication to align teams
+- Presented complex AI methodologies to stakeholders with clarity
+- Built consensus through effective facilitation and active listening""",
+    "Can you describe Frank's most significant project achievements?": """Frank's most significant achievements include:
+
+**Process Optimization at The Marker Group:**
+- Increased team velocity by 75% through Agile implementation
+- Reduced deployment errors by 40% via Azure DevOps optimization
+- Enabled 3-5 weekly deployments (up from 1-2 monthly)
+
+**Data-Driven Decision Making:**
+- Built 15+ Power BI dashboards for real-time business insights
+- Enhanced decision-making accuracy through data visualization
+- Improved financial reporting through database design
+
+**AI/ML Innovation:**
+- Developed Medical Record Annotation NER Model using spaCy
+- Cut data processing time by 25% through pipeline optimization
+- Created scalable backend with webhook and API integration
+
+**Business Impact:**
+- Achieved 85% stakeholder approval rate (55% improvement)
+- Reduced post-release defects through quality assurance leadership
+- Boosted on-time job completion by 20% through scheduling optimization"""
+}
+
 # Initialize session state for conversation history
 if 'messages' not in st.session_state:
     st.session_state.messages = []
@@ -246,7 +335,7 @@ for message in st.session_state.messages:
 
 # --- User Input Handling ---
 def handle_user_input(prompt=None):
-    """Process user input, call API, and update chat."""
+    """Process user input, check predefined answers first, then call API if needed."""
     user_question = prompt if prompt else st.session_state.get("chat_input", "")
     
     if user_question:
@@ -257,19 +346,27 @@ def handle_user_input(prompt=None):
         with st.chat_message("user"):
             st.markdown(user_question)
             
-        # Get answer from API and display it
+        # Get answer and display it
         with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                answer, confidence = get_api_answer(user_question)
-                
-                # Add a small delay for a more natural feel
-                time.sleep(0.5)
-                
-                response_text = answer
-                if DEBUG_MODE:
-                    response_text += f"\n\n*(Confidence: {confidence:.2f})*"
-                
+            # Check for predefined answers first
+            if user_question in PREDEFINED_ANSWERS:
+                response_text = PREDEFINED_ANSWERS[user_question]
+                confidence = 1.0
                 st.markdown(response_text)
+                debug_print(f"Used predefined answer for: {user_question}")
+            else:
+                # Use API for other questions
+                with st.spinner("Thinking..."):
+                    answer, confidence = get_api_answer(user_question)
+                    
+                    # Add a small delay for a more natural feel
+                    time.sleep(0.5)
+                    
+                    response_text = answer
+                    if DEBUG_MODE:
+                        response_text += f"\n\n*(Confidence: {confidence:.2f})*"
+                    
+                    st.markdown(response_text)
 
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response_text})
@@ -278,24 +375,34 @@ def handle_user_input(prompt=None):
         if not prompt and "chat_input" in st.session_state:
              st.session_state.chat_input = ""
 
-# User input form at the bottom
+# User input form - MOVED ABOVE example questions for better UX
 st.chat_input("Ask a question about Frank's qualifications:", key="chat_input", on_submit=handle_user_input)
 
 # --- Example Questions and Tips ---
 st.markdown("---")
 st.markdown("#### Example Questions")
 
-# Use a responsive grid for example questions
-cols = st.columns([1, 1, 1])
+# All 6 example questions in a responsive 2x3 grid
 example_questions = [
     "What is Frank's current role?",
     "What certifications does Frank have?",
-    "What are Frank's technical skills?"
+    "What are Frank's technical skills?",
+    "Tell me about Frank's experience with Agile/Scrum methodologies",
+    "What is Frank's experience with stakeholder management?",
+    "Can you describe Frank's most significant project achievements?"
 ]
 
-for i, col in enumerate(cols):
-    if col.button(example_questions[i], use_container_width=True):
+# First row - 3 columns
+cols1 = st.columns([1, 1, 1])
+for i, col in enumerate(cols1):
+    if col.button(example_questions[i], use_container_width=True, key=f"q_{i}"):
         handle_user_input(prompt=example_questions[i])
+
+# Second row - 3 columns
+cols2 = st.columns([1, 1, 1])
+for i, col in enumerate(cols2):
+    if col.button(example_questions[i+3], use_container_width=True, key=f"q_{i+3}"):
+        handle_user_input(prompt=example_questions[i+3])
 
 st.markdown("""
 <div class="tips-container">
