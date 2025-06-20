@@ -9,6 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from datetime import datetime
 import logging
+import json
+
+from src.models.resume_data import RESUME_DATA
+from src.models.gpt_service import GPTService
 
 # Create logs directory
 os.makedirs("logs", exist_ok=True)
@@ -63,32 +67,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Structured resume data
-RESUME_DATA = {
-    "contact": {
-        "name": "Frank Tallerine",
-        "location": "Montgomery, TX",
-        "email": "REDACTED_EMAIL@example.com "
-    },
-    "current_role": "Technical Business Analyst at The Marker Group",
-    "certifications": [
-        "Azure Administrator Associate (AZ-104)",
-        "Professional Scrum Master I (PSM I)",
-        "Azure Fundamentals (AZ-900)"
-    ],
-    "skills": {
-        "cloud": ["Azure", "Azure DevOps", "Azure Functions", "Azure SQL"],
-        "programming": ["Python", "SQL", "JavaScript", "TypeScript"],
-        "tools": ["Power BI", "JIRA", "Git", "VS Code"],
-        "business": ["Agile", "Scrum", "Business Analysis", "Requirements Gathering"]
-    },
-    "experience": {
-        "total_ba": "6+ years",
-        "azure": "3+ years",
-        "sql": "3+ years",
-        "scrum": "4+ years"
-    }
-}
+# Initialize GPT Service for fallback
+try:
+    gpt_service = GPTService()
+    GPT_ENABLED = True
+except ValueError:
+    gpt_service = None
+    GPT_ENABLED = False
+    logger.warning("OPENAI_API_KEY not set. GPT fallback is disabled.")
 
 class Question(BaseModel):
     """A question about Frank's qualifications."""
@@ -122,44 +108,60 @@ def get_structured_answer(question: str) -> tuple[str, float]:
     q = q.replace("my", "frank's")
     q = q.replace("i", "frank")
     
+    # Job History
+    if any(term in q for term in ["last job", "previous job", "past job", "former job"]):
+        past_jobs = [exp for exp in RESUME_DATA["professional_experience"] if exp["status"] == "Past"]
+        if past_jobs:
+            # The jobs are in reverse-chronological order in resume_data.py
+            last_job = past_jobs[0]
+            return f"Frank's most recent previous job was as a {last_job['role']} at {last_job['company']}.", 1.0
+        else:
+            return "I couldn't find information about Frank's past jobs, but I can tell you about his current one.", 0.6
+
     # Certifications
     if any(term in q for term in ["certification", "certified", "cert"]):
-        return f"Frank holds the following certifications:\n" + "\n".join(f"• {cert}" for cert in RESUME_DATA["certifications"]), 1.0
+        certs = [f"• {cert['name']} ({cert['issuer']})" for cert in RESUME_DATA["certifications"]]
+        return "Frank holds the following certifications:\n" + "\n".join(certs), 1.0
     
     # Current role
-    if any(term in q for term in ["current role", "current position", "current job", "work", "do for work", "do for a living"]):
-        return f"Frank's current role is {RESUME_DATA['current_role']}", 1.0
-    
+    if any(term in q for term in ["current role", "current position", "current job", "job", "role", "work", "do for work", "do for a living"]):
+        current_job = next((exp for exp in RESUME_DATA["professional_experience"] if exp["status"] == "Current"), None)
+        if current_job:
+            return f"Frank's current role is {current_job['role']} at {current_job['company']}.", 1.0
+        return "I couldn't find Frank's current role.", 0.5
+
     # Location
     if any(term in q for term in ["where", "location", "based", "live", "located", "from"]):
-        return f"Frank is located in {RESUME_DATA['contact']['location']}", 1.0
+        return f"Frank is located in {RESUME_DATA['contact_information']['location']}.", 1.0
     
     # Contact
     if any(term in q for term in ["contact", "email", "reach", "get in touch"]):
-        contact = RESUME_DATA["contact"]
-        return f"You can contact Frank via email at {contact['email']}", 1.0
+        contact = RESUME_DATA["contact_information"]
+        return f"You can contact Frank via email at {contact['email']}. You can also find him on LinkedIn: {contact['linkedin']}", 1.0
     
     # Skills
     if any(term in q for term in ["skill", "technology", "tool", "tech", "know", "can do", "expertise", "proficiency"]):
+        skills_data = RESUME_DATA["skills_and_technologies"]
         if "cloud" in q or "azure" in q:
-            skills = RESUME_DATA["skills"]["cloud"]
-            return f"Frank's cloud and Azure skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
+            skills = skills_data["cloud_and_net"]
+            return f"Frank's cloud and .NET skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
         elif "programming" in q or "language" in q or "code" in q:
-            skills = RESUME_DATA["skills"]["programming"]
-            return f"Frank's programming skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
+            skills = skills_data["programming_languages"]
+            return f"Frank's programming languages include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
         elif "tool" in q:
-            skills = RESUME_DATA["skills"]["tools"]
+            skills = skills_data["tools"]
             return f"Frank's technical tools expertise includes:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
         elif "business" in q:
-            skills = RESUME_DATA["skills"]["business"]
+            skills = skills_data["business_analysis"] + skills_data["agile_and_scrum"]
             return f"Frank's business and process skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
         else:
             # All skills
             all_skills = {
-                "Cloud & Azure": RESUME_DATA["skills"]["cloud"],
-                "Programming": RESUME_DATA["skills"]["programming"],
-                "Tools": RESUME_DATA["skills"]["tools"],
-                "Business": RESUME_DATA["skills"]["business"]
+                "Cloud & .NET": skills_data["cloud_and_net"],
+                "Programming Languages": skills_data["programming_languages"],
+                "Tools": skills_data["tools"],
+                "Business & Agile": skills_data["business_analysis"] + skills_data["agile_and_scrum"],
+                "Soft Skills": skills_data["soft_skills"]
             }
             response = "Frank's skills by category:\n\n"
             for category, skills in all_skills.items():
@@ -168,18 +170,42 @@ def get_structured_answer(question: str) -> tuple[str, float]:
     
     # Experience
     if any(term in q for term in ["experience", "how long", "years", "time"]):
+        exp = RESUME_DATA["experience_highlights"]
         if "business" in q or "ba" in q:
-            return f"Frank has {RESUME_DATA['experience']['total_ba']} of Business Analysis experience.", 1.0
+            return f"Frank has {exp['total_ba_experience']} of Business Analysis experience.", 1.0
         elif "azure" in q:
-            return f"Frank has {RESUME_DATA['experience']['azure']} of Azure experience.", 1.0
+            return f"Frank has {exp['azure_experience']} of Azure experience.", 1.0
         elif "sql" in q:
-            return f"Frank has {RESUME_DATA['experience']['sql']} of SQL experience.", 1.0
+            return f"Frank has {exp['sql_experience']} of SQL experience.", 1.0
         elif "scrum" in q:
-            return f"Frank has {RESUME_DATA['experience']['scrum']} of Scrum experience.", 1.0
+            return f"Frank has {exp['scrum_master_experience']} of Scrum experience.", 1.0
         else:
-            exp = RESUME_DATA["experience"]
-            return f"Frank's experience includes:\n• Business Analysis: {exp['total_ba']}\n• Azure: {exp['azure']}\n• SQL: {exp['sql']}\n• Scrum: {exp['scrum']}", 1.0
+            return f"Frank's experience includes:\n• Business Analysis: {exp['total_ba_experience']}\n• Scrum Master: {exp['scrum_master_experience']}\n• Azure: {exp['azure_experience']}\n• SQL: {exp['sql_experience']}", 1.0
     
+    # Fallback to GPT if no structured answer is found
+    if GPT_ENABLED:
+        logger.info("No structured answer found. Falling back to GPT.")
+        # Create a detailed prompt for the GPT model
+        prompt = f"""
+        You are an AI assistant answering questions about a job candidate named Frank based on his resume data.
+        Answer the following question concisely, as if you are Frank's helpful assistant.
+        Do not mention that you are using his resume data.
+        If the question is unrelated to Frank's professional background, politely decline to answer.
+
+        Resume Data:
+        {json.dumps(RESUME_DATA, indent=2)}
+
+        Question: "{question}"
+
+        Answer:
+        """
+        try:
+            answer = gpt_service.get_completion(prompt)
+            return answer, 0.7  # Lower confidence for AI-generated answers
+        except Exception as e:
+            logger.error(f"Error during GPT fallback: {e}")
+            return "I encountered an error trying to answer your question. Please try again.", 0.0
+
     return "I can provide information about Frank's certifications, skills, experience, current role, or contact details. Please ask about any of these topics.", 0.5
 
 @app.get("/",
