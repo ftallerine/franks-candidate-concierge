@@ -3,7 +3,15 @@ Standalone version of Frank's Candidate Concierge API
 No database dependencies, using only structured data responses
 """
 
+import sys
 import os
+
+# This block MUST come BEFORE any `from src...` imports.
+# It fixes the Python path to be able to find the `src` module in deployment.
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field

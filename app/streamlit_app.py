@@ -10,11 +10,12 @@ import logging
 from datetime import datetime
 import requests  # Import the requests library to make API calls
 
-# Add the project root to Python path so we can import from src
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
+# This block MUST come BEFORE any `from src...` imports.
+# It fixes the Python path to be able to find the `src` module in deployment.
+# Since this script is in a subdirectory (`app`), we need to go up one level.
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
-    sys.path.append(project_root)
+    sys.path.insert(0, project_root)
 
 # Now import the QA model and resume data
 try:
@@ -59,7 +60,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configure the page
-concierge_icon_path = os.path.join(current_dir, "static", "images", "concierge_icon.png")
+concierge_icon_path = os.path.join(project_root, "static", "images", "concierge_icon.png")
 st.set_page_config(
     page_title="Frank's Candidate Concierge",
     page_icon=concierge_icon_path if os.path.exists(concierge_icon_path) else "📋",
@@ -132,7 +133,7 @@ def load_css():
             justify-content: center !important;
         }
         .linkedin-button-text {
-            display: none; /* Hide text by default */
+            display: none; /* Hide text on all devices */
         }
         /* Mobile responsiveness */
         @media (max-width: 768px) {
