@@ -302,73 +302,37 @@ st.markdown("""
     <h4>💡 Tips:</h4>
     <ul>
         <li><b>Be specific:</b> Ask about particular roles, skills, or experiences (e.g., "What Azure certifications does Frank have?")</li>
-        <li><b>Use the examples:</b> Click the sample questions above (mobile) or in the sidebar (desktop)</li>
+        <li><b>Use the examples:</b> Click the sample questions above</li>
         <li><b>Try different phrasings:</b> If you don't get the answer you need, rephrase your question</li>
     </ul>
 </div>
 """, unsafe_allow_html=True)
 
-# Sidebar with profile and example questions
+# Sidebar content with headshot and professional summary
 with st.sidebar:
-    # Professional headshot at top of sidebar
-    try:
-        if image_path:
-            st.image(image_path, use_container_width=True)
-            logger.info(f"Successfully loaded headshot in sidebar: {image_path}")
-        else:
-            st.info("👔 Professional headshot")
-            logger.warning("No headshot image found")
-    except Exception as e:
-        logger.error(f"Error loading headshot in sidebar: {e}")
-        st.info("👔 Professional headshot")
-    
-    # Add LinkedIn connection in sidebar
+    # --- Headshot Image ---
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    image_path = os.path.join(current_dir, "static", "images", "headshot.png")
+    if os.path.exists(image_path):
+        st.image(image_path, width=160, use_column_width=False)
+        logger.info(f"Successfully loaded headshot in sidebar: {image_path}")
+    else:
+        logger.warning(f"Headshot image not found at {image_path}")
+
+    # --- Professional Summary ---
+    st.markdown("### Professional Summary")
     st.markdown("""
-    <style>
-    .sidebar-linkedin {
-        text-align: center;
-        margin: 20px 0;
-    }
-    .sidebar-linkedin-button {
-        background: linear-gradient(135deg, #FFD700, #FFA500);
-        border-radius: 50%;
-        padding: 12px;
-        box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
-        transition: all 0.2s ease;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        text-decoration: none;
-        width: 40px;
-        height: 40px;
-    }
-    .sidebar-linkedin-button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
-    }
-    </style>
-    <div class="sidebar-linkedin">
-        <a href="https://www.linkedin.com/in/frank-tallerine/" target="_blank" class="sidebar-linkedin-button">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-            </svg>
-        </a>
-    </div>
-    """, unsafe_allow_html=True)
+    Certified Scrum Master with over 6 years of experience as a Technical Business Analyst, excelling in Agile frameworks and AI-driven insights within .NET environments. Adept at delivering precise, high-level communication and devising creative solutions.
+    """)
+
+    st.markdown("---")
     
-    st.header("Example Questions")
-    example_questions = [
-        "What is Frank's current role?",
-        "What certifications does Frank have?",
-        "What are Frank's technical skills?",
-        "What programming languages does Frank know?",
-        "What is Frank's experience with Azure?"
-    ]
-    
-    for question in example_questions:
-        if st.button(question):
-            st.session_state.question = question
+    # --- Contact Information ---
+    st.markdown("### Contact")
+    st.markdown("""
+    - **Email:** REDACTED_EMAIL@example.com 
+    - **Location:** Montgomery, TX
+    """)
 
 # Mobile-friendly sample questions (shown only on mobile)
 st.markdown("""
