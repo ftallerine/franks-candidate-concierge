@@ -108,79 +108,79 @@ def get_structured_answer(question: str) -> tuple[str, float]:
     q = q.replace("my", "frank's")
     q = q.replace("i", "frank")
     
-    # Job History
-    if any(term in q for term in ["last job", "previous job", "past job", "former job"]):
-        past_jobs = [exp for exp in RESUME_DATA["professional_experience"] if exp["status"] == "Past"]
-        if past_jobs:
-            # The jobs are in reverse-chronological order in resume_data.py
-            last_job = past_jobs[0]
-            return f"Frank's most recent previous job was as a {last_job['role']} at {last_job['company']}.", 1.0
-        else:
-            return "I couldn't find information about Frank's past jobs, but I can tell you about his current one.", 0.6
+    # # Job History
+    # if any(term in q for term in ["last job", "previous job", "past job", "former job"]):
+    #     past_jobs = [exp for exp in RESUME_DATA["professional_experience"] if exp["status"] == "Past"]
+    #     if past_jobs:
+    #         # The jobs are in reverse-chronological order in resume_data.py
+    #         last_job = past_jobs[0]
+    #         return f"Frank's most recent previous job was as a {last_job['role']} at {last_job['company']}.", 1.0
+    #     else:
+    #         return "I couldn't find information about Frank's past jobs, but I can tell you about his current one.", 0.6
 
-    # Certifications
-    if any(term in q for term in ["certification", "certified", "cert"]):
-        certs = [f"• {cert['name']} ({cert['issuer']})" for cert in RESUME_DATA["certifications"]]
-        return "Frank holds the following certifications:\n" + "\n".join(certs), 1.0
+    # # Certifications
+    # if any(term in q for term in ["certification", "certified", "cert"]):
+    #     certs = [f"• {cert['name']} ({cert['issuer']})" for cert in RESUME_DATA["certifications"]]
+    #     return "Frank holds the following certifications:\n" + "\n".join(certs), 1.0
     
-    # Current role
-    if any(term in q for term in ["current role", "current position", "current job", "job", "role", "work", "do for work", "do for a living"]):
-        current_job = next((exp for exp in RESUME_DATA["professional_experience"] if exp["status"] == "Current"), None)
-        if current_job:
-            return f"Frank's current role is {current_job['role']} at {current_job['company']}.", 1.0
-        return "I couldn't find Frank's current role.", 0.5
+    # # Current role
+    # if any(term in q for term in ["current role", "current position", "current job", "job", "role", "work", "do for work", "do for a living"]):
+    #     current_job = next((exp for exp in RESUME_DATA["professional_experience"] if exp["status"] == "Current"), None)
+    #     if current_job:
+    #         return f"Frank's current role is {current_job['role']} at {current_job['company']}.", 1.0
+    #     return "I couldn't find Frank's current role.", 0.5
 
-    # Location
-    if any(term in q for term in ["where", "location", "based", "live", "located", "from"]):
-        return f"Frank is located in {RESUME_DATA['contact_information']['location']}.", 1.0
+    # # Location
+    # if any(term in q for term in ["where", "location", "based", "live", "located", "from"]):
+    #     return f"Frank is located in {RESUME_DATA['contact_information']['location']}.", 1.0
     
-    # Contact
-    if any(term in q for term in ["contact", "email", "reach", "get in touch"]):
-        contact = RESUME_DATA["contact_information"]
-        return f"You can contact Frank via email at {contact['email']}. You can also find him on LinkedIn: {contact['linkedin']}", 1.0
+    # # Contact
+    # if any(term in q for term in ["contact", "email", "reach", "get in touch"]):
+    #     contact = RESUME_DATA["contact_information"]
+    #     return f"You can contact Frank via email at {contact['email']}. You can also find him on LinkedIn: {contact['linkedin']}", 1.0
     
-    # Skills
-    if any(term in q for term in ["skill", "technology", "tool", "tech", "know", "can do", "expertise", "proficiency"]):
-        skills_data = RESUME_DATA["skills_and_technologies"]
-        if "cloud" in q or "azure" in q:
-            skills = skills_data["cloud_and_net"]
-            return f"Frank's cloud and .NET skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
-        elif "programming" in q or "language" in q or "code" in q:
-            skills = skills_data["programming_languages"]
-            return f"Frank's programming languages include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
-        elif "tool" in q:
-            skills = skills_data["tools"]
-            return f"Frank's technical tools expertise includes:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
-        elif "business" in q:
-            skills = skills_data["business_analysis"] + skills_data["agile_and_scrum"]
-            return f"Frank's business and process skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
-        else:
-            # All skills
-            all_skills = {
-                "Cloud & .NET": skills_data["cloud_and_net"],
-                "Programming Languages": skills_data["programming_languages"],
-                "Tools": skills_data["tools"],
-                "Business & Agile": skills_data["business_analysis"] + skills_data["agile_and_scrum"],
-                "Soft Skills": skills_data["soft_skills"]
-            }
-            response = "Frank's skills by category:\n\n"
-            for category, skills in all_skills.items():
-                response += f"{category}:\n" + "\n".join(f"• {skill}" for skill in skills) + "\n\n"
-            return response.strip(), 1.0
+    # # Skills
+    # if any(term in q for term in ["skill", "technology", "tool", "tech", "know", "can do", "expertise", "proficiency"]):
+    #     skills_data = RESUME_DATA["skills_and_technologies"]
+    #     if "cloud" in q or "azure" in q:
+    #         skills = skills_data["cloud_and_net"]
+    #         return f"Frank's cloud and .NET skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
+    #     elif "programming" in q or "language" in q or "code" in q:
+    #         skills = skills_data["programming_languages"]
+    #         return f"Frank's programming languages include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
+    #     elif "tool" in q:
+    #         skills = skills_data["tools"]
+    #         return f"Frank's technical tools expertise includes:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
+    #     elif "business" in q:
+    #         skills = skills_data["business_analysis"] + skills_data["agile_and_scrum"]
+    #         return f"Frank's business and process skills include:\n" + "\n".join(f"• {skill}" for skill in skills), 1.0
+    #     else:
+    #         # All skills
+    #         all_skills = {
+    #             "Cloud & .NET": skills_data["cloud_and_net"],
+    #             "Programming Languages": skills_data["programming_languages"],
+    #             "Tools": skills_data["tools"],
+    #             "Business & Agile": skills_data["business_analysis"] + skills_data["agile_and_scrum"],
+    #             "Soft Skills": skills_data["soft_skills"]
+    #         }
+    #         response = "Frank's skills by category:\n\n"
+    #         for category, skills in all_skills.items():
+    #             response += f"{category}:\n" + "\n".join(f"• {skill}" for skill in skills) + "\n\n"
+    #         return response.strip(), 1.0
     
-    # Experience
-    if any(term in q for term in ["experience", "how long", "years", "time"]):
-        exp = RESUME_DATA["experience_highlights"]
-        if "business" in q or "ba" in q:
-            return f"Frank has {exp['total_ba_experience']} of Business Analysis experience.", 1.0
-        elif "azure" in q:
-            return f"Frank has {exp['azure_experience']} of Azure experience.", 1.0
-        elif "sql" in q:
-            return f"Frank has {exp['sql_experience']} of SQL experience.", 1.0
-        elif "scrum" in q:
-            return f"Frank has {exp['scrum_master_experience']} of Scrum experience.", 1.0
-        else:
-            return f"Frank's experience includes:\n• Business Analysis: {exp['total_ba_experience']}\n• Scrum Master: {exp['scrum_master_experience']}\n• Azure: {exp['azure_experience']}\n• SQL: {exp['sql_experience']}", 1.0
+    # # Experience
+    # if any(term in q for term in ["experience", "how long", "years", "time"]):
+    #     exp = RESUME_DATA["experience_highlights"]
+    #     if "business" in q or "ba" in q:
+    #         return f"Frank has {exp['total_ba_experience']} of Business Analysis experience.", 1.0
+    #     elif "azure" in q:
+    #         return f"Frank has {exp['azure_experience']} of Azure experience.", 1.0
+    #     elif "sql" in q:
+    #         return f"Frank has {exp['sql_experience']} of SQL experience.", 1.0
+    #     elif "scrum" in q:
+    #         return f"Frank has {exp['scrum_master_experience']} of Scrum experience.", 1.0
+    #     else:
+    #         return f"Frank's experience includes:\n• Business Analysis: {exp['total_ba_experience']}\n• Scrum Master: {exp['scrum_master_experience']}\n• Azure: {exp['azure_experience']}\n• SQL: {exp['sql_experience']}", 1.0
     
     # Fallback to GPT if no structured answer is found
     if GPT_ENABLED:
