@@ -239,9 +239,10 @@ PREDEFINED_ANSWERS = {
     "What is Frank's current role?": "Frank's current role is a Technical Business Analyst at The Marker Group.",
     "What certifications does Frank have?": """Frank has the following certifications:
 
-1. Certified Scrum Master (CSM) obtained in 2019 from Scrum Alliance (Active)
-2. Microsoft Certified: Azure Administrator Associate obtained in 2021 from Microsoft (Active)  
-3. Microsoft Certified: Azure Fundamentals obtained in 2020 from Microsoft (Active)""",
+1. Microsoft Certified: Azure AI Fundamentals obtained in 2024 from Microsoft (Active)
+2. Certified Scrum Master (CSM) obtained in 2019 from Scrum Alliance (Active)
+3. Microsoft Certified: Azure Administrator Associate obtained in 2021 from Microsoft (Active)  
+4. Microsoft Certified: Azure Fundamentals obtained in 2020 from Microsoft (Active)""",
     "What are Frank's technical skills?": """Frank's technical skills include:
 
 **Programming & Development:**
