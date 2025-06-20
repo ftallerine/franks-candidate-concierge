@@ -8,6 +8,7 @@ from pathlib import Path
 import time
 import logging
 from datetime import datetime
+import requests  # Import the requests library to make API calls
 
 # Add the project root to Python path so we can import from src
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -66,87 +67,38 @@ st.set_page_config(
 
 logger.info("Streamlit app started")
 
-# Use Streamlit caching for model loading
-@st.cache_resource(show_spinner=False)
-def load_qa_model():
-    """Load the QA model with caching to avoid reloading."""
-    try:
-        logger.info("Loading QA model with caching...")
-        model = QAModel()
-        logger.info("QA model loaded successfully")
-        return model, True
-    except Exception as e:
-        logger.error(f"Failed to load QA model: {str(e)}")
-        return None, False
+# --- New Function to Call the Backend API ---
+API_URL = "https://franks-candidate-concierge.onrender.com/ask"
 
-# Simple Q&A fallback using structured data only
-def get_simple_answer(question: str) -> tuple[str, float]:
-    """Get answer using only structured data, without ML model."""
-    if not MODEL_AVAILABLE:
-        return "Model not available. Please check the installation.", 0.0
-        
-    q_lower = question.lower()
-    
-    # Simple keyword-based matching for common questions
-    predefined_answers = {
-        "current role": "Technical Business Analyst at The Marker Group (September 2018-Present)",
-        "certifications": "Certified Scrum Master (CSM) - Scrum Alliance, 2019; Microsoft Certified: Azure Administrator Associate - Microsoft, 2021; Microsoft Certified: Azure Fundamentals - Microsoft, 2020",
-        "technical skills": "Azure (3+ years), Azure DevOps (3+ years), SQL (3+ years), Power BI, Python, Git, Visual Studio, Office 365 (5+ years), PowerShell",
-        "programming languages": "Python, C++, JavaScript, HTML, CSS, PowerShell",
-        "azure experience": "3+ years since 2021. Azure DevOps releases, reduced deployment errors by 40%, enabled 3-5 weekly deployments. Azure Administrator Associate certified.",
-        "education": "Bachelor of Mathematics and Bachelor of Finance from Texas State University, San Marcos, TX. Graduated Cum Laude in 2016.",
-        "experience": "6+ years as Technical Business Analyst. Led Agile process optimization, increased team velocity by 75%, conducted stakeholder analysis.",
-        "contact": "Email: REDACTED_EMAIL@example.com , LinkedIn: https://www.linkedin.com/in/frank-tallerine/, Location: Montgomery, TX"
-    }
-    
-    # Find matching answer
-    for key, answer in predefined_answers.items():
-        if key in q_lower:
-            return answer, 1.0
-    
-    # Try to extract from RESUME_DATA if available
+@st.cache_data(ttl=300)  # Cache responses for 5 minutes
+def get_api_answer(question: str) -> tuple[str, float]:
+    """
+    Calls the backend API to get an answer to a question.
+    Returns the answer and confidence score.
+    """
+    if not question:
+        return "", 0.0
+
     try:
-        # Current role
-        if any(term in q_lower for term in ["current", "role", "position", "job"]):
-            current_job = RESUME_DATA["professional_experience"][0]
-            return f"{current_job['title']} at {current_job['company']} ({current_job['dates']})", 1.0
-            
-        # Certifications
-        if "cert" in q_lower:
-            certs = []
-            for cert in RESUME_DATA["certifications"]:
-                certs.append(f"{cert['name']} ({cert['issuer']}, {cert['year_obtained']})")
-            return "; ".join(certs), 1.0
-            
-        # Skills
-        if any(term in q_lower for term in ["skill", "technology", "tech"]):
-            skills = []
-            skills.extend(RESUME_DATA["skills_and_technologies"]["cloud_and_net"])
-            skills.extend(RESUME_DATA["skills_and_technologies"]["tools"][:5])  # First 5 tools
-            return ", ".join(skills), 1.0
-            
-        # Programming languages
-        if "programming" in q_lower and "language" in q_lower:
-            return ", ".join(RESUME_DATA["skills_and_technologies"]["programming_languages"]), 1.0
-            
-        # Azure
-        if "azure" in q_lower:
-            return "3+ years experience with Azure and Azure DevOps. Microsoft Certified: Azure Administrator Associate (2021), Azure Fundamentals (2020). Managed Azure DevOps releases, reducing deployment errors by 40%.", 1.0
-            
-        # Education
-        if any(term in q_lower for term in ["education", "degree", "university", "college"]):
-            edu = RESUME_DATA["education"]
-            return f"{', '.join(edu['degrees'])} from {edu['university']}, graduated {edu['honors']} in {edu['graduation_year']}", 1.0
-            
-        # Contact
-        if any(term in q_lower for term in ["contact", "email", "linkedin"]):
-            contact = RESUME_DATA["contact_information"]
-            return f"Email: {contact['email']}, LinkedIn: {contact['linkedin']}, Location: {contact['location']}", 1.0
-            
+        logger.info(f"Calling API with question: '{question}'")
+        payload = {"text": question}
+        response = requests.post(API_URL, json=payload, timeout=30)
+        
+        response.raise_for_status()  # Raise an exception for bad status codes (4xx or 5xx)
+
+        data = response.json()
+        answer = data.get("answer", "I could not find an answer.")
+        confidence = data.get("confidence", 0.0)
+        
+        logger.info(f"API returned answer with confidence {confidence}")
+        return answer, confidence
+
+    except requests.exceptions.RequestException as e:
+        logger.error(f"API request failed: {e}")
+        return "Sorry, I'm having trouble connecting to my knowledge base. Please try again in a moment.", 0.0
     except Exception as e:
-        logger.error(f"Error in simple answer extraction: {str(e)}")
-    
-    return "", 0.0
+        logger.error(f"An unexpected error occurred: {e}")
+        return "An unexpected error occurred while fetching the answer.", 0.0
 
 # Load external CSS file for cleaner code organization
 def load_css():
@@ -281,20 +233,80 @@ Welcome to Frank's Candidate Concierge! I'm your AI assistant, ready to answer q
 skills, certifications, and more. Feel free to ask me anything about Frank's qualifications!
 """)
 
-# Initialize the AI model in the background
-if MODEL_AVAILABLE:
-    # Try to load the full AI model
-    with st.spinner("🔄 Loading AI model... This may take a moment on first run."):
-        qa_model, model_loaded = load_qa_model()
+# Initialize session state for conversation history
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+if 'question_count' not in st.session_state:
+    st.session_state.question_count = 0
+
+# Display previous messages from session state
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# --- User Input Handling ---
+def handle_user_input(prompt=None):
+    """Process user input, call API, and update chat."""
+    user_question = prompt if prompt else st.session_state.get("chat_input", "")
     
-    if model_loaded:
-        st.success("✅ Model loaded and ready to answer your questions!")
-    else:
-        st.info("ℹ️ Ready to answer common questions using structured data.")
-        qa_model = None
-else:
-    st.info("ℹ️ Ready to answer common questions using structured data.")
-    qa_model = None
+    if user_question:
+        st.session_state.question_count += 1
+        
+        # Add user question to chat history
+        st.session_state.messages.append({"role": "user", "content": user_question})
+        with st.chat_message("user"):
+            st.markdown(user_question)
+            
+        # Get answer from API and display it
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                answer, confidence = get_api_answer(user_question)
+                
+                # Add a small delay for a more natural feel
+                time.sleep(0.5)
+                
+                response_text = answer
+                if DEBUG_MODE:
+                    response_text += f"\n\n*(Confidence: {confidence:.2f})*"
+                
+                st.markdown(response_text)
+
+        # Add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": response_text})
+        
+        # Clear the input box after submission if using the text_input
+        if not prompt and "chat_input" in st.session_state:
+             st.session_state.chat_input = ""
+
+# User input form at the bottom
+st.chat_input("Ask a question about Frank's qualifications:", key="chat_input", on_submit=handle_user_input)
+
+# --- Example Questions and Tips ---
+st.markdown("---")
+st.markdown("#### Example Questions")
+
+# Use a responsive grid for example questions
+cols = st.columns([1, 1, 1])
+example_questions = [
+    "What is Frank's current role?",
+    "What certifications does Frank have?",
+    "What are Frank's technical skills?"
+]
+
+for i, col in enumerate(cols):
+    if col.button(example_questions[i], use_container_width=True):
+        handle_user_input(prompt=example_questions[i])
+
+st.markdown("""
+<div class="tips-container">
+    <h4>💡 Tips:</h4>
+    <ul>
+        <li><b>Be specific:</b> Ask about particular roles, skills, or experiences (e.g., "What Azure certifications does Frank have?")</li>
+        <li><b>Use the examples:</b> Click the sample questions above (mobile) or in the sidebar (desktop)</li>
+        <li><b>Try different phrasings:</b> If you don't get the answer you need, rephrase your question</li>
+    </ul>
+</div>
+""", unsafe_allow_html=True)
 
 # Sidebar with profile and example questions
 with st.sidebar:
@@ -357,56 +369,6 @@ with st.sidebar:
     for question in example_questions:
         if st.button(question):
             st.session_state.question = question
-
-# Main interaction area with mobile-friendly input
-col1, col2 = st.columns([4, 1])
-with col1:
-    question = st.text_input("Ask a question about Frank's qualifications:", 
-                            value=st.session_state.get("question", ""),
-                            key="current_question",
-                            placeholder="e.g., What is Frank's experience with Azure?")
-with col2:
-    st.markdown("<br>", unsafe_allow_html=True)  # Add space to align button with input
-    ask_button = st.button("Ask", type="primary", use_container_width=True)
-
-# Process question if entered or button clicked
-if question and (question != st.session_state.get("last_question", "") or ask_button):
-    try:
-        with st.spinner("🤔 Analyzing resume and generating response..."):
-            answer = ""
-            confidence = 0.0
-            
-            # Try full AI model first if available
-            if qa_model:
-                try:
-                    answer, confidence = qa_model.answer_question(question)
-                except Exception as e:
-                    logger.error(f"AI model error: {str(e)}")
-                    # Fall back to simple answers
-                    answer, confidence = get_simple_answer(question)
-            else:
-                # Use simple structured data answers
-                answer, confidence = get_simple_answer(question)
-            
-            if answer and confidence >= 0.5:
-                # Format the answer properly for display
-                formatted_answer = answer.replace('\n', '  \n')  # Double space + newline for markdown line breaks
-                st.markdown(f"✅ **Answer:**  \n{formatted_answer}")
-                
-                # Show confidence and source for debugging
-                if DEBUG_MODE:
-                    source = "AI Model" if qa_model and confidence < 1.0 else "Structured Data"
-                    st.write(f"Debug: Confidence = {confidence:.2f}, Source = {source}")
-                
-                # Store this question to prevent duplicate processing
-                st.session_state.last_question = question
-                    
-            else:
-                st.warning("I couldn't find a specific answer to that question. Please try rephrasing your question or use one of the example questions above.")
-                
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        logger.error(f"Question processing error: {str(e)}")
 
 # Mobile-friendly sample questions (shown only on mobile)
 st.markdown("""
@@ -639,7 +601,6 @@ if DEBUG_MODE:
     with st.expander("🐛 Debug Info"):
         st.write(f"Debug Mode: {DEBUG_MODE}")
         st.write(f"Model Available: {MODEL_AVAILABLE}")
-        st.write(f"AI Model Loaded: {qa_model is not None}")
         st.write(f"Session state keys: {list(st.session_state.keys())}")
         if st.button("Clear session state"):
             st.session_state.clear()
