@@ -322,65 +322,68 @@ PREDEFINED_ANSWERS = {
 - Boosted on-time job completion by 20% through scheduling optimization"""
 }
 
-# Initialize session state for conversation history
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-if 'question_count' not in st.session_state:
-    st.session_state.question_count = 0
+# Initialize session state for the Q&A section
+if 'current_question' not in st.session_state:
+    st.session_state.current_question = ""
+if 'current_answer' not in st.session_state:
+    st.session_state.current_answer = ""
+if 'input_text' not in st.session_state:
+    # Set a default question for the first view
+    st.session_state.input_text = "What is Frank's current role?"
+    st.session_state.current_question = st.session_state.input_text
+    st.session_state.current_answer = PREDEFINED_ANSWERS[st.session_state.input_text]
 
-# Display previous messages from session state
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# --- Main Q&A Interaction Area ---
 
-# --- User Input Handling ---
-def handle_user_input(prompt=None):
-    """Process user input, check predefined answers first, then call API if needed."""
-    user_question = prompt if prompt else st.session_state.get("chat_input", "")
-    
-    if user_question:
-        st.session_state.question_count += 1
-        
-        # Add user question to chat history
-        st.session_state.messages.append({"role": "user", "content": user_question})
-        with st.chat_message("user"):
-            st.markdown(user_question)
-            
-        # Get answer and display it
-        with st.chat_message("assistant"):
-            # Check for predefined answers first
-            if user_question in PREDEFINED_ANSWERS:
-                response_text = PREDEFINED_ANSWERS[user_question]
-                confidence = 1.0
-                st.markdown(response_text)
-                debug_print(f"Used predefined answer for: {user_question}")
-            else:
-                # Use API for other questions
-                with st.spinner("Thinking..."):
-                    answer, confidence = get_api_answer(user_question)
-                    
-                    # Add a small delay for a more natural feel
-                    time.sleep(0.5)
-                    
-                    response_text = answer
-                    if DEBUG_MODE:
-                        response_text += f"\n\n*(Confidence: {confidence:.2f})*"
-                    
-                    st.markdown(response_text)
+# Function to handle question submission
+def handle_submission():
+    """Process the question from the text input."""
+    question = st.session_state.get("text_input_area", "")
+    if question:
+        st.session_state.input_text = question
+        st.session_state.current_question = question
+        # Check for predefined answers first
+        if question in PREDEFINED_ANSWERS:
+            st.session_state.current_answer = PREDEFINED_ANSWERS[question]
+            debug_print(f"Used predefined answer for: {question}")
+        else:
+            # Call API for other questions
+            with st.spinner("Thinking..."):
+                answer, confidence = get_api_answer(question)
+                st.session_state.current_answer = answer
+                if DEBUG_MODE:
+                    st.session_state.current_answer += f"\\n\\n*(Confidence: {confidence:.2f})*"
 
-        # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": response_text})
-        
-        # Clear the input box after submission if using the text_input
-        if not prompt and "chat_input" in st.session_state:
-             st.session_state.chat_input = ""
+# Function to handle button clicks for predefined questions
+def handle_button_click(question):
+    """Update state when a predefined question button is clicked."""
+    st.session_state.input_text = question
+    st.session_state.current_question = question
+    st.session_state.current_answer = PREDEFINED_ANSWERS[question]
+    debug_print(f"Used predefined answer for: {question}")
 
-# User input form - MOVED ABOVE example questions for better UX
-st.chat_input("Ask a question about Frank's qualifications:", key="chat_input", on_submit=handle_user_input)
+# --- UI Layout ---
 
-# --- Example Questions and Tips ---
+# Input bar at the top
+st.text_input(
+    "Ask a question about Frank's qualifications:",
+    key="text_input_area",
+    value=st.session_state.input_text,
+    on_change=handle_submission,
+    label_visibility="collapsed"
+)
+
+st.markdown("<br>", unsafe_allow_html=True) # Add some space
+
+# The single, updating Q&A display section
+if st.session_state.current_question:
+    with st.container():
+        st.chat_message("user").markdown(st.session_state.current_question)
+        st.chat_message("assistant").markdown(st.session_state.current_answer)
+
+# --- Example Questions ---
 st.markdown("---")
-st.markdown("#### Example Questions")
+st.markdown("#### Or, click an example question to get started:")
 
 # All 6 example questions in a responsive 2x3 grid
 example_questions = [
@@ -392,28 +395,21 @@ example_questions = [
     "Can you describe Frank's most significant project achievements?"
 ]
 
-# First row - 3 columns
-cols1 = st.columns([1, 1, 1])
-for i, col in enumerate(cols1):
-    if col.button(example_questions[i], use_container_width=True, key=f"q_{i}"):
-        handle_user_input(prompt=example_questions[i])
+# Create a 2x3 grid for the buttons
+for i in range(0, len(example_questions), 3):
+    cols = st.columns(3)
+    for j in range(3):
+        if i + j < len(example_questions):
+            question = example_questions[i+j]
+            cols[j].button(
+                question, 
+                use_container_width=True, 
+                key=f"q_{i+j}",
+                on_click=handle_button_click,
+                args=(question,)
+            )
 
-# Second row - 3 columns
-cols2 = st.columns([1, 1, 1])
-for i, col in enumerate(cols2):
-    if col.button(example_questions[i+3], use_container_width=True, key=f"q_{i+3}"):
-        handle_user_input(prompt=example_questions[i+3])
-
-st.markdown("""
-<div class="tips-container">
-    <h4>💡 Tips:</h4>
-    <ul>
-        <li><b>Be specific:</b> Ask about particular roles, skills, or experiences (e.g., "What Azure certifications does Frank have?")</li>
-        <li><b>Use the examples:</b> Click the sample questions above</li>
-        <li><b>Try different phrasings:</b> If you don't get the answer you need, rephrase your question</li>
-    </ul>
-</div>
-""", unsafe_allow_html=True)
+st.markdown("---")
 
 # Sidebar content with headshot and professional summary
 with st.sidebar:
