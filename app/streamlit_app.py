@@ -59,9 +59,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configure the page
+concierge_icon_path = os.path.join(current_dir, "static", "images", "concierge_icon.png")
 st.set_page_config(
     page_title="Frank's Candidate Concierge",
-    page_icon="📋",
+    page_icon=concierge_icon_path if os.path.exists(concierge_icon_path) else "📋",
     layout="wide"
 )
 
@@ -130,6 +131,25 @@ def load_css():
             display: flex !important;
             justify-content: center !important;
         }
+        .linkedin-button-text {
+            display: none; /* Hide text by default */
+        }
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                align-items: center;
+                height: auto;
+                gap: 15px;
+            }
+            .header-title {
+                font-size: 2rem;
+                text-align: center;
+            }
+            .linkedin-button {
+                padding: 6px;
+            }
+        }
         </style>
         """, unsafe_allow_html=True)
 
@@ -192,26 +212,6 @@ st.markdown("""
     font-weight: 600;
     font-size: 14px;
     margin-left: 8px;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .header-container {
-        flex-direction: column;
-        align-items: center;
-        height: auto;
-        gap: 15px;
-    }
-    .header-title {
-        font-size: 2rem;
-        text-align: center;
-    }
-    .linkedin-button-text {
-        display: none;
-    }
-    .linkedin-button {
-        padding: 6px;
-    }
 }
 </style>
 
