@@ -5,6 +5,7 @@ Now with database logging capabilities
 
 import sys
 import os
+from typing import Optional
 
 # This block MUST come BEFORE any `from src...` imports.
 # It fixes the Python path to be able to find the `src` module in deployment.
@@ -12,7 +13,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -20,20 +21,20 @@ import logging
 import json
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
 
-from src.models.qa_model import QAModel
-from src.config.data_loader import RESUME_DATA # SECURITY FIX: Import from secure loader
-from services.logging_config import logger, get_log_viewer_html
+# Local application imports (changed to relative)
+from .models.qa_model import QAModel
+from .models.gpt_service import GPTService
+from .config.data_loader import RESUME_DATA
+from .services.logging_config import logger, get_log_viewer_html
+from .models.database.session import get_db
+from .models.database.operations import DatabaseOperations
+from .models.database.models import Feedback
 
-# Database imports
-try:
-    from src.models.database.session import get_db
-    from src.models.database.operations import DatabaseOperations
-    DATABASE_AVAILABLE = True
-except ImportError as e:
-    DATABASE_AVAILABLE = False
-    print(f"Database import failed: {e}")
-
+# --- Global Variables ---
 # Create logs directory
 os.makedirs("logs", exist_ok=True)
 
@@ -48,34 +49,33 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI
+# --- Lifespan Management ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Handles startup and shutdown events for the application.
+    """
+    global model, gpt_service
+    logger.info("Application starting up...")
+    model = QAModel()
+    
+    # Initialize GPT service (will be None if OPENAI_API_KEY is not set)
+    try:
+        gpt_service = GPTService()
+        logger.info("GPT service initialized successfully")
+    except ValueError as e:
+        logger.warning(f"GPT service not available: {e}")
+        gpt_service = None
+    
+    yield
+    logger.info("Application shutting down...")
+
+# --- App Initialization ---
 app = FastAPI(
     title="Frank's Candidate Concierge API",
-    description="""
-    An API for answering questions about Frank's professional experience and qualifications.
-    
-    ## Available Topics
-    * Certifications
-    * Current Role
-    * Skills (Cloud, Programming, Tools, Business)
-    * Experience
-    * Contact Information
-    
-    ## Example Questions
-    * "What certifications do you have?"
-    * "What is your current role?"
-    * "What are your cloud skills?"
-    * "How much experience do you have with Azure?"
-    * "Where are you located?"
-    """,
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json",
-    contact={
-        "name": "Frank Tallerine",
-        "email": "REDACTED_EMAIL@example.com ",
-    },
+    description="An API for a question-answering chatbot about Frank's qualifications.",
+    version="1.1.0",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -87,14 +87,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize GPT Service for fallback
-try:
-    gpt_service = GPTService()
-    GPT_ENABLED = True
-except ValueError:
-    gpt_service = None
-    GPT_ENABLED = False
-    logger.warning("OPENAI_API_KEY not set. GPT fallback is disabled.")
+model: Optional[QAModel] = None
+gpt_service: Optional[GPTService] = None
 
 class Question(BaseModel):
     """A question about Frank's qualifications."""
@@ -142,43 +136,6 @@ class FeedbackRequest(BaseModel):
         description="Optional feedback comment"
     )
 
-def get_structured_answer(question: str) -> tuple[str, float]:
-    """Get answer from structured data based on question type."""
-    # Normalize question text to handle pronouns consistently
-    q = question.lower()
-    q = q.replace("your", "frank's")
-    q = q.replace("you", "frank")
-    q = q.replace("his", "frank's")
-    q = q.replace("he", "frank")
-    q = q.replace("my", "frank's")
-    q = q.replace("i", "frank")
-    
-    # Fallback to GPT if no structured answer is found
-    if GPT_ENABLED:
-        logger.info("No structured answer found. Falling back to GPT.")
-        # Create a detailed prompt for the GPT model
-        prompt = f"""
-        You are an AI assistant answering questions about a job candidate named Frank based on his resume data.
-        Answer the following question concisely, as if you are Frank's helpful assistant.
-        Do not mention that you are using his resume data.
-        If the question is unrelated to Frank's professional background, politely decline to answer.
-
-        Resume Data:
-        {json.dumps(RESUME_DATA, indent=2)}
-
-        Question: "{question}"
-
-        Answer:
-        """
-        try:
-            answer = gpt_service.get_completion(prompt)
-            return answer, 0.7  # Lower confidence for AI-generated answers
-        except Exception as e:
-            logger.error(f"Error during GPT fallback: {e}")
-            return "I encountered an error trying to answer your question. Please try again.", 0.0
-
-    return "I can provide information about Frank's certifications, skills, experience, current role, or contact details. Please ask about any of these topics.", 0.5
-
 @app.get("/",
     summary="Welcome Message",
     description="Returns a welcome message to confirm the API is running.",
@@ -201,67 +158,55 @@ async def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
-@app.post("/ask",
-    response_model=Answer,
-    summary="Ask a Question",
-    description="""
-    Ask a question about Frank's qualifications, experience, or skills.
+@app.post("/ask", tags=["Q&A"])
+async def ask_question(question: Question, db: Session = Depends(get_db)):
+    """
+    Receives a question, gets an answer from the QA model with GPT fallback, and logs the interaction.
+    """
+    if not model:
+        raise HTTPException(status_code=503, detail="Model is not available")
+
+    # Try the local QA model first
+    answer_text, confidence = model.answer_question(question.text)
+    answer_source = "qa_model"
     
-    The API will analyze your question and provide a relevant answer based on Frank's:
-    * Professional certifications
-    * Current role and responsibilities
-    * Technical skills (Cloud, Programming, Tools)
-    * Business skills
-    * Years of experience
-    * Contact information
+    # If confidence is low (< 0.3) and GPT service is available, use GPT as fallback
+    if confidence < 0.3 and gpt_service:
+        logger.info(f"Low confidence ({confidence:.3f}), trying GPT fallback")
+        try:
+            # Create a context-aware prompt for GPT
+            gpt_prompt = f"""You are Frank's professional assistant. Answer this question about Frank's qualifications, experience, and skills based on his resume.
+
+Question: {question.text}
+
+Resume Context: {RESUME_DATA}
+
+Provide a professional, concise answer. If you cannot find specific information, say so politely."""
+
+            gpt_answer = gpt_service.get_completion(gpt_prompt, max_tokens=200, temperature=0.3)
+            
+            if gpt_answer and not gpt_answer.startswith("[Error:"):
+                answer_text = gpt_answer
+                confidence = 0.85  # Set higher confidence for GPT responses
+                answer_source = "gpt_fallback"
+                logger.info("Successfully used GPT fallback")
+            else:
+                logger.warning("GPT fallback failed or returned error")
+                
+        except Exception as e:
+            logger.error(f"GPT fallback error: {e}")
+            # Continue with the original QA model answer
     
-    All questions and answers are logged to the database for training and improvement.
-    """,
-    response_description="The answer to your question with a confidence score"
-)
-async def ask_question(question: Question):
-    """Get an answer to a question about Frank's resume."""
-    try:
-        logger.info(f"Question received: {question.text}")
-        
-        # Get answer from structured data
-        answer_text, confidence = get_structured_answer(question.text)
-        
-        logger.info(f"Answer generated - Confidence: {confidence}")
-        
-        # Log to database if available
-        answer_id = None
-        if DATABASE_AVAILABLE:
-            try:
-                db = next(get_db())
-                db_ops = DatabaseOperations(db)
-                source = "gpt" if GPT_ENABLED and confidence == 0.7 else "structured"
-                question_obj, answer_obj = db_ops.store_qa_interaction(
-                    question_text=question.text,
-                    answer_text=answer_text,
-                    confidence=confidence,
-                    source=source
-                )
-                answer_id = answer_obj.id
-                logger.info(f"Q&A interaction logged to database with answer_id: {answer_id}")
-                db.close()
-            except Exception as db_error:
-                logger.error(f"Database logging failed: {db_error}")
-                # Don't fail the request if database logging fails
-        else:
-            logger.warning("Database not available - Q&A not logged")
-        
-        return Answer(
-            answer=answer_text,
-            confidence=confidence,
-            answer_id=answer_id
-        )
-    except Exception as e:
-        logger.error(f"Error in ask_question: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    db_ops = DatabaseOperations(db)
+    question_id = db_ops.log_question(question.text)
+    answer_id = db_ops.log_answer(question_id, answer_text, answer_source, confidence)
+    
+    return {
+        "question": question.text,
+        "answer": answer_text,
+        "confidence": confidence,
+        "answer_id": answer_id
+    }
 
 @app.post("/feedback",
     summary="Submit Feedback",
@@ -275,18 +220,11 @@ async def ask_question(question: Question):
     """,
     response_description="Confirmation that feedback was recorded"
 )
-async def submit_feedback(feedback: FeedbackRequest):
+async def submit_feedback(feedback: FeedbackRequest, db: Session = Depends(get_db)):
     """Submit feedback on an answer."""
     try:
-        if not DATABASE_AVAILABLE:
-            raise HTTPException(
-                status_code=503,
-                detail="Database not available - cannot store feedback"
-            )
-        
         logger.info(f"Feedback received for answer_id: {feedback.answer_id}")
         
-        db = next(get_db())
         db_ops = DatabaseOperations(db)
         
         feedback_obj = db_ops.store_feedback(
@@ -297,7 +235,6 @@ async def submit_feedback(feedback: FeedbackRequest):
         )
         
         logger.info(f"Feedback stored with ID: {feedback_obj.id}")
-        db.close()
         
         return {
             "status": "success",
