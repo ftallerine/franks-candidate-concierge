@@ -1,7 +1,7 @@
 import os
 import copy
 from dotenv import load_dotenv
-from src.models.resume_data_template import RESUME_DATA_TEMPLATE
+from models.resume_data_template import RESUME_DATA_TEMPLATE
 from services.logging_config import logger
 
 # Load environment variables from .env file

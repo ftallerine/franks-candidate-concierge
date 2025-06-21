@@ -12,13 +12,13 @@ import json
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict, Tuple
+from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from src.models.database.session import get_db
 from src.models.database.operations import DatabaseOperations
-from src.models.resume_data import RESUME_DATA
-
-logger = logging.getLogger(__name__)
+from .config.data_loader import RESUME_DATA
+from .services.logging_config import logger
+import random
 
 class ResumeQADataset(Dataset):
     """Dataset for fine-tuning on resume-specific Q&A pairs."""

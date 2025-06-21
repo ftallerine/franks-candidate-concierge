@@ -2,16 +2,18 @@
 import sys
 import os
 from pathlib import Path
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
 
 # Add the project root to Python path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.config.database import DATABASE_URL
-from src.models.database.models import Base
-from sqlalchemy import create_engine
+from models.database.session import engine, SessionLocal
+from models.database.models import Base
+from config.database import DATABASE_URL
 
-def init_database():
+def init_database(db: Session = None):
     """Create all database tables."""
     print("Connecting to database...")
     print(f"Database URL: {DATABASE_URL}")

@@ -25,14 +25,14 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-# Local application imports (changed to relative)
-from .models.qa_model import QAModel
-from .models.gpt_service import GPTService
-from .config.data_loader import RESUME_DATA
-from .services.logging_config import logger, get_log_viewer_html
-from .models.database.session import get_db
-from .models.database.operations import DatabaseOperations
-from .models.database.models import Feedback
+# Local application imports (using absolute imports for deployment)
+from models.qa_model import QAModel
+from models.gpt_service import GPTService
+from config.data_loader import RESUME_DATA
+from services.logging_config import logger, get_log_viewer_html
+from models.database.session import get_db
+from models.database.operations import DatabaseOperations
+from models.database.models import Feedback
 
 # --- Global Variables ---
 # Create logs directory
