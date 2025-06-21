@@ -1,6 +1,6 @@
 """
 Standalone version of Frank's Candidate Concierge API
-No database dependencies, using only structured data responses
+Now with database logging capabilities
 """
 
 import sys
@@ -21,6 +21,15 @@ import json
 
 from src.models.resume_data import RESUME_DATA
 from src.models.gpt_service import GPTService
+
+# Database imports
+try:
+    from src.models.database.session import get_db
+    from src.models.database.operations import DatabaseOperations
+    DATABASE_AVAILABLE = True
+except ImportError as e:
+    DATABASE_AVAILABLE = False
+    print(f"Database import failed: {e}")
 
 # Create logs directory
 os.makedirs("logs", exist_ok=True)
@@ -104,6 +113,31 @@ class Answer(BaseModel):
         ge=0.0,
         le=1.0
     )
+    answer_id: int = Field(
+        None,
+        description="Database ID of the answer (for feedback purposes)"
+    )
+
+class FeedbackRequest(BaseModel):
+    """Feedback on an answer."""
+    answer_id: int = Field(
+        ...,
+        description="The ID of the answer being rated"
+    )
+    score: int = Field(
+        ...,
+        description="Rating score (1-5)",
+        ge=1,
+        le=5
+    )
+    was_helpful: bool = Field(
+        ...,
+        description="Whether the answer was helpful"
+    )
+    comment: str = Field(
+        None,
+        description="Optional feedback comment"
+    )
 
 def get_structured_answer(question: str) -> tuple[str, float]:
     """Get answer from structured data based on question type."""
@@ -177,6 +211,8 @@ async def health_check():
     * Business skills
     * Years of experience
     * Contact information
+    
+    All questions and answers are logged to the database for training and improvement.
     """,
     response_description="The answer to your question with a confidence score"
 )
@@ -190,12 +226,84 @@ async def ask_question(question: Question):
         
         logger.info(f"Answer generated - Confidence: {confidence}")
         
+        # Log to database if available
+        answer_id = None
+        if DATABASE_AVAILABLE:
+            try:
+                db = next(get_db())
+                db_ops = DatabaseOperations(db)
+                source = "gpt" if GPT_ENABLED and confidence == 0.7 else "structured"
+                question_obj, answer_obj = db_ops.store_qa_interaction(
+                    question_text=question.text,
+                    answer_text=answer_text,
+                    confidence=confidence,
+                    source=source
+                )
+                answer_id = answer_obj.id
+                logger.info(f"Q&A interaction logged to database with answer_id: {answer_id}")
+                db.close()
+            except Exception as db_error:
+                logger.error(f"Database logging failed: {db_error}")
+                # Don't fail the request if database logging fails
+        else:
+            logger.warning("Database not available - Q&A not logged")
+        
         return Answer(
             answer=answer_text,
-            confidence=confidence
+            confidence=confidence,
+            answer_id=answer_id
         )
     except Exception as e:
         logger.error(f"Error in ask_question: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+@app.post("/feedback",
+    summary="Submit Feedback",
+    description="""
+    Submit feedback on an answer to help improve the system.
+    
+    Feedback is used to:
+    * Train and improve the AI model
+    * Identify areas for improvement
+    * Measure user satisfaction
+    """,
+    response_description="Confirmation that feedback was recorded"
+)
+async def submit_feedback(feedback: FeedbackRequest):
+    """Submit feedback on an answer."""
+    try:
+        if not DATABASE_AVAILABLE:
+            raise HTTPException(
+                status_code=503,
+                detail="Database not available - cannot store feedback"
+            )
+        
+        logger.info(f"Feedback received for answer_id: {feedback.answer_id}")
+        
+        db = next(get_db())
+        db_ops = DatabaseOperations(db)
+        
+        feedback_obj = db_ops.store_feedback(
+            answer_id=feedback.answer_id,
+            score=feedback.score,
+            was_helpful=feedback.was_helpful,
+            comment=feedback.comment
+        )
+        
+        logger.info(f"Feedback stored with ID: {feedback_obj.id}")
+        db.close()
+        
+        return {
+            "status": "success",
+            "message": "Thank you for your feedback!",
+            "feedback_id": feedback_obj.id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in submit_feedback: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=str(e)
