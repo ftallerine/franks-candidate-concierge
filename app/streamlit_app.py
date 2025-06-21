@@ -17,14 +17,14 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# Now import the QA model and resume data
+# Import resume data (QA model removed to save memory)
 try:
-    from src.models.qa_model import QAModel
-    from src.models.resume_data import RESUME_DATA
-    MODEL_AVAILABLE = True
+    from src.config.data_loader import RESUME_DATA
+    MODEL_AVAILABLE = False  # No local model, using API only
 except ImportError as e:
     MODEL_AVAILABLE = False
-    print(f"Model import failed: {e}")
+    print(f"Data import failed: {e}")
+    RESUME_DATA = {}
 
 # Debug Configuration - Secure toggle for debug UI
 # Set DEBUG_MODE = False for production, True for development
