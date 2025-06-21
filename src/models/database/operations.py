@@ -8,6 +8,25 @@ class DatabaseOperations:
     def __init__(self, db: Session):
         self.db = db
 
+    def log_question(self, question_text: str) -> int:
+        """Log a question and return its ID."""
+        question = Question(text=question_text)
+        self.db.add(question)
+        self.db.flush()  # Get the question ID without committing
+        return question.id
+
+    def log_answer(self, question_id: int, answer_text: str, source: str, confidence: float) -> int:
+        """Log an answer and return its ID."""
+        answer = Answer(
+            question_id=question_id,
+            text=answer_text,
+            confidence=confidence,
+            source=source
+        )
+        self.db.add(answer)
+        self.db.commit()
+        return answer.id
+
     def store_qa_interaction(self, question_text: str, answer_text: str, 
                            confidence: float, source: str) -> tuple[Question, Answer]:
         """Store a question-answer interaction in the database."""

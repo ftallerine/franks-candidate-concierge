@@ -26,7 +26,6 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 # Local application imports (using absolute imports for deployment)
-from models.qa_model import QAModel
 from models.gpt_service import GPTService
 from config.data_loader import RESUME_DATA
 from services.logging_config import logger, get_log_viewer_html
@@ -55,9 +54,8 @@ async def lifespan(app: FastAPI):
     """
     Handles startup and shutdown events for the application.
     """
-    global model, gpt_service
+    global gpt_service
     logger.info("Application starting up...")
-    model = QAModel()
     
     # Initialize GPT service (will be None if OPENAI_API_KEY is not set)
     try:
@@ -87,7 +85,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-model: Optional[QAModel] = None
 gpt_service: Optional[GPTService] = None
 
 class Question(BaseModel):
@@ -161,21 +158,14 @@ async def health_check():
 @app.post("/ask", tags=["Q&A"])
 async def ask_question(question: Question, db: Session = Depends(get_db)):
     """
-    Receives a question, gets an answer from the QA model with GPT fallback, and logs the interaction.
+    Receives a question and gets an answer from GPT, logging the interaction.
     """
-    if not model:
-        raise HTTPException(status_code=503, detail="Model is not available")
+    if not gpt_service:
+        raise HTTPException(status_code=503, detail="GPT service is not available")
 
-    # Try the local QA model first
-    answer_text, confidence = model.answer_question(question.text)
-    answer_source = "qa_model"
-    
-    # If confidence is low (< 0.3) and GPT service is available, use GPT as fallback
-    if confidence < 0.3 and gpt_service:
-        logger.info(f"Low confidence ({confidence:.3f}), trying GPT fallback")
-        try:
-            # Create a context-aware prompt for GPT
-            gpt_prompt = f"""You are Frank's professional assistant. Answer this question about Frank's qualifications, experience, and skills based on his resume.
+    try:
+        # Create a context-aware prompt for GPT
+        gpt_prompt = f"""You are Frank's professional assistant. Answer this question about Frank's qualifications, experience, and skills based on his resume.
 
 Question: {question.text}
 
@@ -183,19 +173,23 @@ Resume Context: {RESUME_DATA}
 
 Provide a professional, concise answer. If you cannot find specific information, say so politely."""
 
-            gpt_answer = gpt_service.get_completion(gpt_prompt, max_tokens=200, temperature=0.3)
+        answer_text = gpt_service.get_completion(gpt_prompt, max_tokens=200, temperature=0.3)
+        
+        if answer_text and not answer_text.startswith("[Error:"):
+            confidence = 0.85  # Set confidence for GPT responses
+            answer_source = "gpt"
+            logger.info("Successfully generated GPT response")
+        else:
+            answer_text = "I apologize, but I'm having trouble generating a response right now. Please try again."
+            confidence = 0.0
+            answer_source = "error"
+            logger.warning("GPT response failed or returned error")
             
-            if gpt_answer and not gpt_answer.startswith("[Error:"):
-                answer_text = gpt_answer
-                confidence = 0.85  # Set higher confidence for GPT responses
-                answer_source = "gpt_fallback"
-                logger.info("Successfully used GPT fallback")
-            else:
-                logger.warning("GPT fallback failed or returned error")
-                
-        except Exception as e:
-            logger.error(f"GPT fallback error: {e}")
-            # Continue with the original QA model answer
+    except Exception as e:
+        logger.error(f"GPT error: {e}")
+        answer_text = "I apologize, but I'm experiencing technical difficulties. Please try again later."
+        confidence = 0.0
+        answer_source = "error"
     
     db_ops = DatabaseOperations(db)
     question_id = db_ops.log_question(question.text)
