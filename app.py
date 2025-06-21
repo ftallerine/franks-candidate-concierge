@@ -18,9 +18,12 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 import logging
 import json
+from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 
-from src.models.resume_data import RESUME_DATA
-from src.models.gpt_service import GPTService
+from src.models.qa_model import QAModel
+from src.config.data_loader import RESUME_DATA # SECURITY FIX: Import from secure loader
+from services.logging_config import logger, get_log_viewer_html
 
 # Database imports
 try:
