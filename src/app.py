@@ -202,6 +202,86 @@ Provide a professional, concise answer. If you cannot find specific information,
         "answer_id": answer_id
     }
 
+@app.post("/admin/migrate-db",
+    summary="Migrate Database Schema",
+    description="Emergency endpoint to fix database schema issues (admin only).",
+    response_description="Migration status and results",
+    tags=["Admin"]
+)
+async def migrate_database_schema():
+    """Fix database schema by renaming timestamp columns to created_at."""
+    try:
+        import psycopg2
+        from config.database import DATABASE_URL
+        
+        if not DATABASE_URL:
+            return {"success": False, "error": "DATABASE_URL not configured"}
+        
+        # Connect to database
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        
+        results = []
+        tables_to_fix = ['questions', 'answers', 'feedback']
+        
+        for table in tables_to_fix:
+            try:
+                # Check if timestamp column exists
+                cursor.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = %s AND column_name = 'timestamp'
+                """, (table,))
+                
+                if cursor.fetchone():
+                    cursor.execute(f"ALTER TABLE {table} RENAME COLUMN timestamp TO created_at;")
+                    results.append(f"✓ {table} table fixed")
+                else:
+                    results.append(f"⚠ {table} table already correct")
+                    
+            except Exception as e:
+                results.append(f"✗ Error fixing {table}: {e}")
+                conn.rollback()
+                continue
+        
+        # Create prompt_versions table if it doesn't exist
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS prompt_versions (
+                    id SERIAL PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    prompt_text TEXT NOT NULL,
+                    version_number VARCHAR(20) NOT NULL,
+                    is_active BOOLEAN DEFAULT FALSE,
+                    performance_score FLOAT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    activated_at TIMESTAMP,
+                    created_by VARCHAR(50) DEFAULT 'system',
+                    notes TEXT
+                );
+            """)
+            results.append("✓ prompt_versions table created/verified")
+        except Exception as e:
+            results.append(f"✗ Error creating prompt_versions table: {e}")
+        
+        # Commit all changes
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "message": "Database migration completed",
+            "results": results
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Migration failed: {str(e)}",
+            "message": "Please check logs for details"
+        }
+
 @app.post("/feedback",
     summary="Submit Feedback",
     description="""
