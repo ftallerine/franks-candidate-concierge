@@ -11,7 +11,7 @@ class Question(Base):
     
     id = Column(Integer, primary_key=True)
     text = Column(Text, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
     answers = relationship("Answer", back_populates="question")
 
 class Answer(Base):
@@ -21,8 +21,8 @@ class Answer(Base):
     question_id = Column(Integer, ForeignKey('questions.id'))
     text = Column(Text, nullable=False)
     confidence = Column(Float, nullable=False)
-    source = Column(String(50))  # 'structured' or 'qa_model'
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    source = Column(String(50))  # 'gpt', 'structured', or 'error'
+    created_at = Column(DateTime, default=datetime.utcnow)
     
     question = relationship("Question", back_populates="answers")
     feedback = relationship("Feedback", back_populates="answer")
@@ -35,6 +35,20 @@ class Feedback(Base):
     score = Column(Integer)  # 1-5 rating
     was_helpful = Column(Boolean)
     comment = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
     
-    answer = relationship("Answer", back_populates="feedback") 
+    answer = relationship("Answer", back_populates="feedback")
+
+class PromptVersion(Base):
+    __tablename__ = 'prompt_versions'
+    
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False)  # e.g. "default", "enhanced_v1"
+    prompt_text = Column(Text, nullable=False)
+    version_number = Column(String(20), nullable=False)  # e.g. "1.0", "1.1"
+    is_active = Column(Boolean, default=False)
+    performance_score = Column(Float)  # Average feedback score when using this prompt
+    created_at = Column(DateTime, default=datetime.utcnow)
+    activated_at = Column(DateTime)
+    created_by = Column(String(50), default="system")  # Who created it
+    notes = Column(Text)  # Why this prompt was created 

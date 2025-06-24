@@ -1,7 +1,7 @@
 """Database operations for the Candidate Concierge."""
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from .models import Question, Answer, Feedback
+from .models import Question, Answer, Feedback, PromptVersion
 from datetime import datetime
 
 class DatabaseOperations:
@@ -81,4 +81,44 @@ class DatabaseOperations:
             .join(Answer, Question.id == Answer.question_id)\
             .filter(Answer.confidence >= min_confidence)\
             .limit(limit)\
-            .all() 
+            .all()
+    
+    def store_prompt_version(self, name: str, prompt_text: str, version_number: str, 
+                           notes: str = None, created_by: str = "system") -> PromptVersion:
+        """Store a new prompt version."""
+        prompt_version = PromptVersion(
+            name=name,
+            prompt_text=prompt_text,
+            version_number=version_number,
+            notes=notes,
+            created_by=created_by
+        )
+        self.db.add(prompt_version)
+        self.db.commit()
+        return prompt_version
+    
+    def activate_prompt(self, prompt_id: int) -> bool:
+        """Activate a prompt version (deactivates all others)."""
+        # Deactivate all prompts
+        self.db.query(PromptVersion).update({"is_active": False, "activated_at": None})
+        
+        # Activate the selected prompt
+        prompt = self.db.query(PromptVersion).filter(PromptVersion.id == prompt_id).first()
+        if prompt:
+            prompt.is_active = True
+            prompt.activated_at = datetime.utcnow()
+            self.db.commit()
+            return True
+        return False
+    
+    def get_active_prompt(self) -> PromptVersion:
+        """Get the currently active prompt."""
+        return self.db.query(PromptVersion)\
+            .filter(PromptVersion.is_active == True)\
+            .first()
+    
+    def get_prompt_performance(self, prompt_id: int) -> float:
+        """Calculate average feedback score for a specific prompt version."""
+        # This would require tracking which prompt was used for each answer
+        # For now, return None - can be enhanced later
+        return None 
