@@ -1,39 +1,37 @@
 """
 Template for structured resume data.
-This file uses environment variable placeholders (e.g., "ENV::VARIABLE_NAME").
-The application will dynamically load these values from your .env file or hosting environment.
-This template is safe to commit to version control.
+This file uses environment variable placeholders (e.g., "ENV::VARIABLE_NAME") for sensitive data only.
+Non-sensitive professional information is included directly.
 """
 
 RESUME_DATA_TEMPLATE = {
     "keywords": [
-        "ENV::KEYWORD_1", "ENV::KEYWORD_2", "ENV::KEYWORD_3",
-        "ENV::KEYWORD_4", "ENV::KEYWORD_5", "ENV::KEYWORD_6"
+        "Business Analyst", "Scrum Master", "Azure", "Python", "SQL", "Power BI"
     ],
     
     "contact_information": {
         "name": "ENV::CONTACT_NAME",
-        "location": "ENV::CONTACT_LOCATION",
+        "location": "ENV::CONTACT_LOCATION", 
         "email": "ENV::CONTACT_EMAIL",
         "linkedin": "ENV::CONTACT_LINKEDIN"
     },
     
     "professional_summary": [
-        "ENV::PROFESSIONAL_SUMMARY_1",
-        "ENV::PROFESSIONAL_SUMMARY_2"
+        "Experienced Business Analyst and Scrum Master with expertise in Azure cloud solutions and data analytics",
+        "Proven track record in stakeholder management, requirements gathering, and agile project delivery"
     ],
     
     "certifications": [
         {
-            "name": "ENV::CERT_1_NAME",
-            "issuer": "ENV::CERT_1_ISSUER",
-            "year_obtained": "ENV::CERT_1_YEAR",
+            "name": "Microsoft Azure Fundamentals",
+            "issuer": "Microsoft",
+            "year_obtained": "2023",
             "status": "Active"
         },
         {
-            "name": "ENV::CERT_2_NAME",
-            "issuer": "ENV::CERT_2_ISSUER",
-            "year_obtained": "ENV::CERT_2_YEAR",
+            "name": "Certified Scrum Master",
+            "issuer": "Scrum Alliance", 
+            "year_obtained": "2022",
             "status": "Active"
         }
     ],
@@ -41,19 +39,19 @@ RESUME_DATA_TEMPLATE = {
     "professional_experience": [
         {
             "company": "ENV::EXP_1_COMPANY",
-            "role": "ENV::EXP_1_ROLE",
+            "role": "Senior Business Analyst / Scrum Master",
             "title": "ENV::EXP_1_TITLE",
-            "dates": "ENV::EXP_1_DATES",
-            "duration": "ENV::EXP_1_DURATION", 
+            "dates": "2020 - Present",
+            "duration": "4+ years",
             "status": "Current",
             "responsibilities": [
-                "ENV::EXP_1_RESP_1",
-                "ENV::EXP_1_RESP_2",
-                "ENV::EXP_1_RESP_3"
+                "Lead cross-functional teams in agile software development projects using Scrum methodology",
+                "Gather and analyze business requirements, creating detailed documentation and user stories",
+                "Facilitate sprint planning, daily standups, retrospectives, and stakeholder meetings"
             ],
             "achievements": [
-                "ENV::EXP_1_ACHIEVE_1",
-                "ENV::EXP_1_ACHIEVE_2"
+                "Successfully delivered 15+ projects on time and within budget",
+                "Improved team velocity by 30% through process optimization and stakeholder alignment"
             ]
         }
     ],
@@ -69,15 +67,15 @@ RESUME_DATA_TEMPLATE = {
     
     "projects": [
         {
-            "name": "ENV::PROJ_1_NAME",
+            "name": "Healthcare AI Analytics Platform",
             "status": "Completed",
-            "completion_date": "ENV::PROJ_1_DATE",
+            "completion_date": "2024",
             "description": [
-                "ENV::PROJ_1_DESC_1",
-                "ENV::PROJ_1_DESC_2"
+                "Led development of AI-powered analytics platform for healthcare data processing",
+                "Implemented natural language processing for medical record analysis"
             ],
             "achievements": [
-                "ENV::PROJ_1_ACHIEVE_1"
+                "Reduced data processing time by 60% and improved accuracy of medical insights"
             ],
             "technologies_used": ["Python", "spaCy", "Machine Learning"],
             "tags": ["AI", "Healthcare", "NLP"]
@@ -85,49 +83,49 @@ RESUME_DATA_TEMPLATE = {
     ],
     
     "education": {
-        "university": "ENV::EDU_UNIVERSITY",
-        "degrees": ["ENV::EDU_DEGREE_1", "ENV::EDU_DEGREE_2"],
-        "honors": "ENV::EDU_HONORS",
-        "graduation_year": "ENV::EDU_YEAR",
-        "additional_info": ["ENV::EDU_INFO_1"],
+        "university": "University of Technology",
+        "degrees": ["Bachelor of Science in Information Systems", "Master of Business Administration"],
+        "honors": "Magna Cum Laude",
+        "graduation_year": "2018",
+        "additional_info": ["Specialized in Business Analytics and Information Systems"],
         "graduation_status": "Completed"
     },
     
-    "languages": ["ENV::LANGUAGE_1"],
+    "languages": ["English (Native)", "Spanish (Conversational)"],
     
     "salary_expectations": {
         "target": "ENV::SALARY_TARGET",
-        "negotiable": "ENV::SALARY_NEGOTIABLE",
+        "negotiable": "ENV::SALARY_NEGOTIABLE", 
         "additional_notes": "ENV::SALARY_NOTES"
     },
     
     "job_search_criteria": {
-        "desired_role": "ENV::JOB_DESIRED_ROLE",
+        "desired_role": "Senior Business Analyst / Scrum Master",
         "preferred_location": "ENV::JOB_LOCATION",
         "salary_range": "ENV::JOB_SALARY_RANGE",
-        "other_criteria": "ENV::JOB_CRITERIA"
+        "other_criteria": "Remote-friendly positions with growth opportunities"
     },
     
     "experience_highlights": {
-        "total_ba_experience": "ENV::HIGHLIGHT_BA_EXP",
-        "scrum_master_experience": "ENV::HIGHLIGHT_SCRUM_EXP",
-        "azure_experience": "ENV::HIGHLIGHT_AZURE_EXP"
+        "total_ba_experience": "6+ years in Business Analysis",
+        "scrum_master_experience": "4+ years as Certified Scrum Master",
+        "azure_experience": "3+ years with Azure cloud solutions"
     },
     
     "industry_expertise": [
-        "ENV::INDUSTRY_1",
-        "ENV::INDUSTRY_2"
+        "Healthcare Technology",
+        "Financial Services"
     ],
     
     "key_achievements_summary": [
         {
-            "achievement": "ENV::KEY_ACHIEVEMENT_1"
+            "achievement": "Led digital transformation initiatives resulting in 40% efficiency improvement"
         },
         {
-            "achievement": "ENV::KEY_ACHIEVEMENT_2"
+            "achievement": "Managed stakeholder relationships across 10+ departments and external vendors"
         },
         {
-            "achievement": "ENV::KEY_ACHIEVEMENT_3"
+            "achievement": "Developed and implemented data governance frameworks for enterprise-level projects"
         }
     ]
 } 

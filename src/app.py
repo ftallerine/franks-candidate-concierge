@@ -202,8 +202,14 @@ Provide a professional, concise answer. If you cannot find specific information,
         "answer_id": answer_id
     }
 
+@app.get("/admin/migrate-db",
+    summary="Migrate Database Schema (GET)",
+    description="Emergency endpoint to fix database schema issues (admin only) - accessible via browser.",
+    response_description="Migration status and results",
+    tags=["Admin"]
+)
 @app.post("/admin/migrate-db",
-    summary="Migrate Database Schema",
+    summary="Migrate Database Schema (POST)",
     description="Emergency endpoint to fix database schema issues (admin only).",
     response_description="Migration status and results",
     tags=["Admin"]
